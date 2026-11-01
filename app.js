@@ -1,121 +1,216 @@
 "use strict";
 
-/* ---------- Données de référence ---------- */
+/* =========================================================
+   Données de référence
+   ========================================================= */
 
 const CATEGORIES = [
-  { id: "Courses", ico: "🛒", c: "#ff9500" },
-  { id: "Logement", ico: "🏠", c: "#a2845e" },
-  { id: "Transport", ico: "🚗", c: "#007aff" },
-  { id: "Restaurant", ico: "🍽️", c: "#ff2d55" },
-  { id: "Loisirs", ico: "🎮", c: "#af52de" },
-  { id: "Shopping", ico: "🛍️", c: "#5856d6" },
-  { id: "Santé", ico: "💊", c: "#00c7be" },
-  { id: "Factures", ico: "📄", c: "#30b0c7" },
-  { id: "Salaire", ico: "💶", c: "#34c759" },
-  { id: "Autre", ico: "✨", c: "#8e8e93" },
+  { id: "Courses", ico: "🛒", c: "#f59e0b" },
+  { id: "Logement", ico: "🏠", c: "#a16207" },
+  { id: "Transport", ico: "🚗", c: "#3b82f6" },
+  { id: "Restaurant", ico: "🍽️", c: "#ec4899" },
+  { id: "Loisirs", ico: "🎮", c: "#8b5cf6" },
+  { id: "Shopping", ico: "🛍️", c: "#6366f1" },
+  { id: "Santé", ico: "💊", c: "#14b8a6" },
+  { id: "Factures", ico: "📄", c: "#0ea5e9" },
+  { id: "Salaire", ico: "💶", c: "#10b981" },
+  { id: "Autre", ico: "✨", c: "#94a3b8" },
 ];
 const CAT = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
 
 const NIVEAUX = [
-  { id: "enorme", nom: "Énorme", taux: 0.40, ico: "🔥", c: "#af52de" },
-  { id: "grand", nom: "Grand", taux: 0.25, ico: "⭐", c: "#007aff" },
-  { id: "moyen", nom: "Moyen", taux: 0.15, ico: "🌿", c: "#30b0a0" },
-  { id: "petit", nom: "Petit", taux: 0.05, ico: "💧", c: "#ff9500" },
+  { id: "enorme", nom: "Énorme", taux: 0.40, ico: "🔥", c: "#8b5cf6" },
+  { id: "grand", nom: "Grand", taux: 0.25, ico: "⭐", c: "#3b82f6" },
+  { id: "moyen", nom: "Moyen", taux: 0.15, ico: "🌿", c: "#10b981" },
+  { id: "petit", nom: "Petit", taux: 0.05, ico: "💧", c: "#f59e0b" },
 ];
 const NIV = Object.fromEntries(NIVEAUX.map((n) => [n.id, n]));
 
-/* ---------- Stockage (sur l'appareil) ---------- */
+// Plafonds réglementaires (versements pour le PEA).
+const COMPTES = [
+  { id: "livretA", nom: "Livret A", ico: "🏦", plafond: 22950, c: "#ea580c", clair: "#fb923c", grad: "linear-gradient(135deg,#ee7a32 0%,#c2410c 60%,#9a3412 100%)" },
+  { id: "livretJeune", nom: "Livret Jeune", ico: "🌱", plafond: 1600, c: "#0e7490", clair: "#22d3ee", grad: "linear-gradient(135deg,#0ea5b7 0%,#0e7490 55%,#155e75 100%)" },
+  { id: "pea", nom: "PEA", ico: "📈", plafond: 150000, c: "#7c3aed", clair: "#c4a5ff", grad: "linear-gradient(135deg,#a06bff 0%,#7c3aed 50%,#4c1d95 100%)" },
+];
+const CPT = Object.fromEntries(COMPTES.map((c) => [c.id, c]));
+
+/* =========================================================
+   Stockage (uniquement sur l'appareil)
+   ========================================================= */
 
 const CLE = "budget.v1";
-let donnees = charger();
+let donnees = normaliser(lireStockage());
 
-function charger() {
-  try {
-    const d = JSON.parse(localStorage.getItem(CLE));
-    if (d && Array.isArray(d.mouvements)) return { mouvements: d.mouvements, plans: d.plans || {} };
-  } catch (e) { /* données absentes ou illisibles */ }
-  return { mouvements: [], plans: {} };
+function lireStockage() {
+  try { return JSON.parse(localStorage.getItem(CLE)); } catch (e) { return null; }
+}
+
+function normaliser(d) {
+  d = d && typeof d === "object" ? d : {};
+  const c = d.comptes || {};
+  return {
+    mouvements: Array.isArray(d.mouvements) ? d.mouvements : [],
+    plans: d.plans || {},
+    comptes: {
+      livretA: { solde: Number(c.livretA && c.livretA.solde) || 0 },
+      livretJeune: { solde: Number(c.livretJeune && c.livretJeune.solde) || 0 },
+      pea: {
+        especes: Number(c.pea && c.pea.especes) || 0,
+        lignes: Array.isArray(c.pea && c.pea.lignes) ? c.pea.lignes : [],
+      },
+    },
+  };
 }
 
 function sauver() {
-  try { localStorage.setItem(CLE, JSON.stringify(donnees)); } catch (e) { toast("Impossible d'enregistrer", false); }
+  try { localStorage.setItem(CLE, JSON.stringify(donnees)); } catch (e) { toast("Impossible d'enregistrer", "var(--depense)"); }
 }
 
-// Demande au navigateur de ne pas effacer les données.
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
-/* ---------- Outils ---------- */
+/* =========================================================
+   Outils
+   ========================================================= */
 
 const fmtEuros = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
 const fmtEurosRond = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 const fmtPct = new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 0 });
-const fmtSaisie = new Intl.NumberFormat("fr-FR", { useGrouping: false, maximumFractionDigits: 2 });
+const fmtPct1 = new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1, signDisplay: "exceptZero" });
+const fmtNombre = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 4 });
+const fmtSaisie = new Intl.NumberFormat("fr-FR", { useGrouping: false, maximumFractionDigits: 4 });
 const euros = (v) => fmtEuros.format(v);
-const eurosRond = (v) => fmtEurosRond.format(v);
+const eurosRond = (v) => fmtEurosRond.format(Math.round(v));
+const eurosSigne = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + euros(Math.abs(v));
+const arrondi = (v) => Math.round(v * 100) / 100;
 
-function lireMontant(texte) {
+function lireNombre(texte, decimales = 2) {
   const v = Number(String(texte).replace(/[\s  ]/g, "").replace(",", "."));
-  return Number.isFinite(v) && v > 0 ? Math.round(v * 100) / 100 : null;
+  if (!Number.isFinite(v) || v < 0) return null;
+  const f = 10 ** decimales;
+  return Math.round(v * f) / f;
+}
+const lireMontant = (t) => { const v = lireNombre(t); return v && v > 0 ? v : null; };
+const texteSaisie = (v) => (v ? fmtSaisie.format(v) : "");
+
+// Garde uniquement des chiffres et une virgule (n décimales maximum).
+function nettoyerSaisie(input, decimales = 2) {
+  let v = input.value.replace(/[^\d.,]/g, "").replace(".", ",");
+  const i = v.indexOf(",");
+  if (i >= 0) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/,/g, "").slice(0, decimales);
+  input.value = v.slice(0, 12);
 }
 
 const debutMois = (d) => new Date(d.getFullYear(), d.getMonth(), 1);
 const ajouterMois = (d, n) => new Date(d.getFullYear(), d.getMonth() + n, 1);
 const cleMois = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 const memeMois = (iso, mois) => cleMois(new Date(iso)) === cleMois(mois);
-function nomMois(d) {
-  const t = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
-  return t.charAt(0).toUpperCase() + t.slice(1);
-}
+const majuscule = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+const nomMois = (d) => majuscule(d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }));
 const dateCourte = (iso) => new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 const duMois = (mois) => donnees.mouvements.filter((m) => memeMois(m.date, mois));
 const somme = (liste) => liste.reduce((s, m) => s + m.montant, 0);
 const revenus = (liste) => somme(liste.filter((m) => m.estRevenu));
 const depenses = (liste) => somme(liste.filter((m) => !m.estRevenu));
+const places = (liste) => somme(liste.filter((m) => m.estRevenu && m.compte));
 const tries = () => [...donnees.mouvements].sort((a, b) => b.date.localeCompare(a.date));
+const nouvelId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
 const $ = (id) => document.getElementById(id);
 function el(tag, attrs = {}, ...enfants) {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
     if (k === "class") e.className = v;
     else if (k === "style") e.style.cssText = v;
     else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
-    else e.setAttribute(k, v);
+    else e.setAttribute(k, v === true ? "" : v);
   }
-  for (const x of enfants.flat()) if (x != null) e.append(x);
+  for (const x of enfants.flat(Infinity)) if (x != null && x !== false) e.append(x);
   return e;
 }
 
+// Fait défiler un nombre jusqu'à sa nouvelle valeur.
+function compter(elm, valeur, fmt = eurosRond) {
+  const depart = Number(elm.dataset.v || 0);
+  elm.dataset.v = valeur;
+  if (depart === valeur || matchMedia("(prefers-reduced-motion: reduce)").matches) { elm.textContent = fmt(valeur); return; }
+  const t0 = performance.now(), duree = 700;
+  const pas = (t) => {
+    const k = Math.min(1, (t - t0) / duree), e = 1 - Math.pow(1 - k, 3);
+    elm.textContent = fmt(depart + (valeur - depart) * e);
+    if (k < 1) requestAnimationFrame(pas);
+  };
+  requestAnimationFrame(pas);
+}
+
 let minuteurToast;
-function toast(texte, positif = true) {
+function toast(texte, couleur = "var(--revenu)") {
   const t = $("toast");
-  t.textContent = "✓ " + texte;
-  t.style.background = positif ? "var(--vert)" : "var(--rouge)";
+  t.replaceChildren(el("span", { class: "ok", style: `background:${couleur}` }, "✓"), texte);
   t.classList.add("visible");
   clearTimeout(minuteurToast);
-  minuteurToast = setTimeout(() => t.classList.remove("visible"), 2000);
+  minuteurToast = setTimeout(() => t.classList.remove("visible"), 2200);
 }
 
-function ligneMouvement(m) {
-  const cat = m.categorie ? CAT[m.categorie] : null;
-  const couleur = cat ? cat.c : m.estRevenu ? "var(--vert)" : "#8e8e93";
-  const titre = m.libelle || (cat ? cat.id : m.estRevenu ? "Revenu" : "Dépense");
-  return el("li", { class: "ligne", onclick: () => supprimer(m, titre) },
-    el("span", { class: "pastille", style: `--c:${couleur}` }, cat ? cat.ico : m.estRevenu ? "＋" : "−"),
-    el("div", { class: "infos" },
-      el("div", { class: "titre" }, titre),
-      el("div", { class: "date" }, dateCourte(m.date))),
-    el("span", { class: "valeur" + (m.estRevenu ? " txt-vert" : "") }, (m.estRevenu ? "+" : "−") + euros(m.montant)));
+/* =========================================================
+   Comptes : valeurs et mouvements d'argent
+   ========================================================= */
+
+const valeurLigne = (l) => l.quantite * (l.cours || l.pru);
+const investiLigne = (l) => l.quantite * l.pru;
+function valeurCompte(id) {
+  const c = donnees.comptes[id];
+  if (id === "pea") return c.especes + c.lignes.reduce((s, l) => s + valeurLigne(l), 0);
+  return c.solde;
+}
+function crediter(id, montant) {
+  const c = donnees.comptes[id];
+  if (!c) return;
+  if (id === "pea") c.especes = Math.max(0, arrondi(c.especes + montant));
+  else c.solde = Math.max(0, arrondi(c.solde + montant));
 }
 
-function supprimer(m, titre) {
-  if (!confirm(`Supprimer « ${titre} » (${euros(m.montant)}) ?`)) return;
-  donnees.mouvements = donnees.mouvements.filter((x) => x.id !== m.id);
-  sauver();
-  toutAfficher();
-  toast("Mouvement supprimé", false);
+/* =========================================================
+   Feuille du bas
+   ========================================================= */
+
+let construireFeuille = null;
+function ouvrirFeuille(construire) {
+  construireFeuille = construire;
+  const f = $("feuille");
+  rafraichirFeuille();
+  f.hidden = false;
+  requestAnimationFrame(() => requestAnimationFrame(() => f.classList.add("ouverte")));
 }
+function rafraichirFeuille() {
+  if (!construireFeuille) return;
+  const panneau = $("feuille-panneau");
+  const defilement = panneau.scrollTop;
+  panneau.replaceChildren(el("div", { class: "poignee" }), ...[construireFeuille()].flat(Infinity).filter((x) => x != null && x !== false));
+  panneau.scrollTop = defilement;
+}
+function fermerFeuille() {
+  const f = $("feuille");
+  document.activeElement && document.activeElement.blur();
+  f.classList.remove("ouverte");
+  construireFeuille = null;
+  setTimeout(() => { if (!construireFeuille) f.hidden = true; }, 350);
+}
+$("feuille").addEventListener("click", (e) => { if (e.target.hasAttribute("data-fermer")) fermerFeuille(); });
+
+/* =========================================================
+   Onglets
+   ========================================================= */
+
+document.querySelectorAll(".tabbar button").forEach((b) =>
+  b.addEventListener("click", () => {
+    document.activeElement && document.activeElement.blur();
+    document.querySelectorAll(".tabbar button").forEach((x) => x.classList.toggle("actif", x === b));
+    document.querySelectorAll(".onglet").forEach((s) => s.classList.toggle("actif", s.id === b.dataset.onglet));
+    window.scrollTo(0, 0);
+    if (b.dataset.onglet === "diagrammes") afficherDiagrammes();
+  }));
 
 function selecteurMois(conteneur, getMois, setMois) {
   conteneur.replaceChildren(
@@ -124,25 +219,16 @@ function selecteurMois(conteneur, getMois, setMois) {
     el("button", { class: "fleche", "aria-label": "Mois suivant", onclick: () => setMois(ajouterMois(getMois(), 1)) }, "›"));
 }
 
-/* ---------- Onglets ---------- */
-
-document.querySelectorAll(".tabbar button").forEach((b) =>
-  b.addEventListener("click", () => {
-    document.activeElement && document.activeElement.blur();
-    document.querySelectorAll(".tabbar button").forEach((x) => x.classList.toggle("actif", x === b));
-    document.querySelectorAll(".onglet").forEach((s) => s.classList.toggle("actif", s.id === b.dataset.onglet));
-    window.scrollTo(0, 0);
-  }));
-
-/* ---------- Accueil ---------- */
+/* =========================================================
+   Accueil
+   ========================================================= */
 
 const champMontant = $("montant");
 const champLibelle = $("libelle");
 let categorieChoisie = null;
 
 function ajusterLargeur(input) {
-  const n = Math.max(1, input.value.length);
-  input.style.width = `${n * 0.62 + 0.3}em`;
+  input.style.width = `${Math.max(1, input.value.length) * 0.6 + 0.15}em`;
 }
 
 function afficherChips() {
@@ -152,7 +238,7 @@ function afficherChips() {
       style: `--c:${c.c}`,
       "aria-pressed": String(categorieChoisie === c.id),
       onclick: () => { categorieChoisie = categorieChoisie === c.id ? null : c.id; afficherChips(); },
-    }, `${c.ico} ${c.id}`)));
+    }, el("span", { class: "emo" }, c.ico), c.id)));
 }
 
 function majBoutons() {
@@ -161,51 +247,90 @@ function majBoutons() {
   $("btn-depense").disabled = !ok;
 }
 
-champMontant.addEventListener("input", () => {
-  // Garde uniquement chiffres et un séparateur décimal.
-  let v = champMontant.value.replace(/[^\d.,]/g, "").replace(".", ",");
-  const i = v.indexOf(",");
-  if (i >= 0) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/,/g, "").slice(0, 2);
-  champMontant.value = v.slice(0, 10);
-  ajusterLargeur(champMontant);
-  majBoutons();
-});
+champMontant.addEventListener("input", () => { nettoyerSaisie(champMontant); ajusterLargeur(champMontant); majBoutons(); });
 champLibelle.addEventListener("keydown", (e) => { if (e.key === "Enter") champLibelle.blur(); });
 
-function ajouter(estRevenu) {
+function enregistrer(estRevenu, compte = null) {
   const montant = lireMontant(champMontant.value);
   if (montant === null) return;
   donnees.mouvements.push({
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    montant,
-    estRevenu,
+    id: nouvelId(), montant, estRevenu, compte,
     libelle: champLibelle.value.trim(),
     categorie: categorieChoisie,
     date: new Date().toISOString(),
   });
+  if (compte) crediter(compte, montant);
   sauver();
+
   champMontant.value = "";
   champLibelle.value = "";
   categorieChoisie = null;
-  champMontant.blur();
-  champLibelle.blur();
-  ajusterLargeur(champMontant);
-  majBoutons();
-  afficherChips();
+  champMontant.blur(); champLibelle.blur();
+  ajusterLargeur(champMontant); majBoutons(); afficherChips();
   toutAfficher();
-  toast(estRevenu ? `Revenu de ${euros(montant)} enregistré` : `Dépense de ${euros(montant)} enregistrée`, estRevenu);
+
+  if (!estRevenu) toast(`Dépense de ${euros(montant)} enregistrée`, "var(--depense)");
+  else if (compte) toast(`${euros(montant)} placés sur ${CPT[compte].nom}`, CPT[compte].c);
+  else toast(`Revenu de ${euros(montant)} enregistré`);
 }
-$("btn-revenu").addEventListener("click", () => ajouter(true));
-$("btn-depense").addEventListener("click", () => ajouter(false));
+
+// Un revenu : on demande où il va.
+$("btn-revenu").addEventListener("click", () => {
+  const montant = lireMontant(champMontant.value);
+  if (montant === null) return;
+  document.activeElement && document.activeElement.blur();
+  ouvrirFeuille(() => [
+    el("h3", {}, "Où va ce revenu ?"),
+    el("p", { class: "sous" }, `${euros(montant)} à répartir sur l'un de tes comptes.`),
+    el("div", { class: "choix" },
+      el("button", { class: "option", style: "--grad:linear-gradient(135deg,#12b981,#047857)", onclick: () => { fermerFeuille(); enregistrer(true, null); } },
+        el("span", { class: "ico-opt" }, "💳"),
+        el("span", { class: "txt" }, el("b", {}, "Compte courant"), el("span", {}, "Pour tes dépenses du mois")),
+        el("span", { class: "fl" }, "›")),
+      COMPTES.map((c) => el("button", { class: "option", style: `--grad:${c.grad}`, onclick: () => { fermerFeuille(); enregistrer(true, c.id); } },
+        el("span", { class: "ico-opt" }, c.ico),
+        el("span", { class: "txt" }, el("b", {}, c.nom), el("span", {}, `Actuellement ${euros(valeurCompte(c.id))}`)),
+        el("span", { class: "fl" }, "›")))),
+  ]);
+});
+$("btn-depense").addEventListener("click", () => enregistrer(false));
+
+function ligneMouvement(m) {
+  const cat = m.categorie ? CAT[m.categorie] : null;
+  const compte = m.compte ? CPT[m.compte] : null;
+  const couleur = cat ? cat.c : m.estRevenu ? "#10b981" : "#94a3b8";
+  const titre = m.libelle || (cat ? cat.id : m.estRevenu ? "Revenu" : "Dépense");
+  return el("li", { class: "ligne", onclick: () => supprimer(m, titre) },
+    el("span", { class: "pastille", style: `--c:${couleur}` }, cat ? cat.ico : m.estRevenu ? "💶" : "💸"),
+    el("div", { class: "infos" },
+      el("div", { class: "titre" }, titre),
+      el("div", { class: "meta" }, dateCourte(m.date),
+        compte && el("span", { class: "badge", style: `--c:${compte.c}` }, `→ ${compte.nom}`))),
+    el("span", { class: "valeur" + (m.estRevenu ? " plus" : "") }, (m.estRevenu ? "+" : "−") + euros(m.montant)));
+}
+
+function supprimer(m, titre) {
+  const compte = m.compte ? CPT[m.compte] : null;
+  const detail = compte ? `\nLe montant sera aussi retiré de ton ${compte.nom}.` : "";
+  if (!confirm(`Supprimer « ${titre} » (${euros(m.montant)}) ?${detail}`)) return;
+  donnees.mouvements = donnees.mouvements.filter((x) => x.id !== m.id);
+  if (compte) crediter(compte.id, -m.montant);
+  sauver();
+  toutAfficher();
+  toast("Mouvement supprimé", "var(--depense)");
+}
 
 function afficherAccueil() {
   const maintenant = new Date();
+  const h = maintenant.getHours();
+  $("salut").textContent = (h < 5 ? "Bonne nuit" : h < 18 ? "Bonjour" : "Bonsoir") + " 👋";
+  $("titre-accueil").textContent = majuscule(maintenant.toLocaleDateString("fr-FR", { month: "long" }));
+
   const ceMois = duMois(maintenant);
   const r = revenus(ceMois), d = depenses(ceMois);
-  $("solde-mois").textContent = nomMois(maintenant);
-  $("solde-revenus").textContent = eurosRond(r);
-  $("solde-depenses").textContent = eurosRond(d);
-  $("solde-total").textContent = eurosRond(r - d);
+  compter($("hero-solde"), r - d);
+  compter($("hero-revenus"), r);
+  compter($("hero-depenses"), d);
 
   const liste = tries().slice(0, 5);
   $("derniers").replaceChildren(...liste.map(ligneMouvement));
@@ -213,7 +338,209 @@ function afficherAccueil() {
   $("tout-voir").hidden = liste.length === 0;
 }
 
-/* ---------- Historique ---------- */
+/* =========================================================
+   Comptes
+   ========================================================= */
+
+function afficherComptes() {
+  const valeurs = COMPTES.map((c) => ({ c, v: valeurCompte(c.id) }));
+  const total = valeurs.reduce((s, x) => s + x.v, 0);
+  compter($("total-epargne"), total);
+
+  $("barre-repartition").replaceChildren(...(total > 0
+    ? valeurs.filter((x) => x.v > 0).map((x) => el("i", { style: `flex-grow:${x.v};background:${x.c.clair}` }))
+    : []));
+  $("legende-comptes").replaceChildren(...valeurs.map((x) => el("span", {},
+    el("i", { style: `background:${x.c.clair}` }),
+    `${x.c.nom} ${total > 0 ? fmtPct.format(x.v / total) : ""}`)));
+
+  $("liste-comptes").replaceChildren(...valeurs.map(({ c, v }) => {
+    let detail, jauge = null;
+    if (c.id === "pea") {
+      const p = donnees.comptes.pea;
+      const investi = p.lignes.reduce((s, l) => s + investiLigne(l), 0);
+      const pv = p.lignes.reduce((s, l) => s + valeurLigne(l) - investiLigne(l), 0);
+      const nbActions = p.lignes.reduce((s, l) => s + l.quantite, 0);
+      detail = el("div", { class: "detail" },
+        p.lignes.length
+          ? `${fmtNombre.format(nbActions)} action${nbActions > 1 ? "s" : ""} · ${p.lignes.length} ligne${p.lignes.length > 1 ? "s" : ""}`
+          : "Aucune action pour l'instant",
+        p.lignes.length && investi > 0 ? el("span", { class: "pv" }, `${eurosSigne(pv)} (${fmtPct1.format(pv / investi)})`) : null);
+    } else {
+      detail = el("div", { class: "detail" }, `Plafond ${eurosRond(c.plafond)} · ${fmtPct.format(Math.min(1, v / c.plafond))} rempli`);
+      jauge = el("div", { class: "jauge-plafond" }, el("i", { style: `width:${Math.min(100, (v / c.plafond) * 100)}%` }));
+    }
+    return el("button", { class: "compte", style: `--grad:${c.grad};--c:${c.c}`, onclick: () => (c.id === "pea" ? ouvrirPEA() : ouvrirLivret(c.id)) },
+      el("div", { class: "haut" },
+        el("span", { class: "nom-compte" }, el("span", { class: "ico-compte" }, c.ico), c.nom),
+        el("span", { class: "chevron" }, "›")),
+      el("div", { class: "solde" }, euros(v)),
+      detail, jauge);
+  }));
+}
+
+function champNombre({ valeur, placeholder = "0", decimales = 2, surSaisie }) {
+  const input = el("input", { class: "champ", type: "text", inputmode: "decimal", placeholder, autocomplete: "off" });
+  input.value = texteSaisie(valeur);
+  input.addEventListener("input", () => { nettoyerSaisie(input, decimales); surSaisie && surSaisie(lireNombre(input.value, decimales) || 0); });
+  return input;
+}
+
+function placementsVers(id) {
+  return tries().filter((m) => m.compte === id).slice(0, 5);
+}
+
+function ouvrirLivret(id) {
+  const c = CPT[id];
+  ouvrirFeuille(() => {
+    const liste = placementsVers(id);
+    return [
+      el("h3", {}, `${c.ico} ${c.nom}`),
+      el("p", { class: "sous" }, `Plafond de ${eurosRond(c.plafond)}.`),
+      el("div", { class: "form" },
+        el("label", {}, "Montant actuel sur le compte (€)",
+          champNombre({ valeur: donnees.comptes[id].solde, surSaisie: (v) => { donnees.comptes[id].solde = v; sauver(); afficherComptes(); } }))),
+      liste.length ? el("div", { class: "section-titre" }, "Derniers revenus placés") : null,
+      liste.length ? el("ul", { class: "liste" }, liste.map(ligneMouvement)) : null,
+      el("div", { style: "height:16px" }),
+      el("button", { class: "principal", onclick: () => { fermerFeuille(); toast(`${c.nom} mis à jour`, c.c); } }, "Terminé"),
+    ];
+  });
+}
+
+let ligneEnEdition = null; // null = vue PEA, "nouvelle" = achat, sinon id d'une ligne
+
+function ouvrirPEA() {
+  ligneEnEdition = null;
+  ouvrirFeuille(construirePEA);
+}
+
+function construirePEA() {
+  const p = donnees.comptes.pea;
+  if (ligneEnEdition === "nouvelle") return formulaireAchat();
+  if (ligneEnEdition) return formulaireLigne(p.lignes.find((l) => l.id === ligneEnEdition));
+
+  const valeurTitres = p.lignes.reduce((s, l) => s + valeurLigne(l), 0);
+  const investi = p.lignes.reduce((s, l) => s + investiLigne(l), 0);
+  const pv = valeurTitres - investi;
+  return [
+    el("h3", {}, "📈 PEA"),
+    el("p", { class: "sous" }, `Valeur totale ${euros(valeurCompte("pea"))}`),
+    el("div", { class: "resume-pea" },
+      el("div", {}, el("small", {}, "Titres"), el("b", {}, eurosRond(valeurTitres))),
+      el("div", {}, el("small", {}, "Investi"), el("b", {}, eurosRond(investi))),
+      el("div", {}, el("small", {}, "Plus-value"), el("b", { class: pv >= 0 ? "pos" : "neg" }, eurosSigne(Math.round(pv)).replace(",00", "")))),
+    el("div", { class: "form", style: "margin-top:12px" },
+      el("label", {}, "Espèces disponibles sur le PEA (€)",
+        champNombre({ valeur: p.especes, surSaisie: (v) => { p.especes = v; sauver(); afficherComptes(); } }))),
+    el("div", { class: "section-titre" }, "Mes actions"),
+    p.lignes.length
+      ? p.lignes.map((l) => {
+        const val = valeurLigne(l), ecart = val - investiLigne(l);
+        return el("button", { class: "ligne-pea", onclick: () => { ligneEnEdition = l.id; rafraichirFeuille(); } },
+          el("div", { class: "infos" }, el("b", {}, l.nom), el("span", {}, `${fmtNombre.format(l.quantite)} × ${euros(l.cours || l.pru)}`)),
+          el("div", { class: "droite" }, el("b", {}, euros(val)),
+            el("span", { class: ecart >= 0 ? "pos" : "neg" }, `${eurosSigne(ecart)} · ${fmtPct1.format(investiLigne(l) ? ecart / investiLigne(l) : 0)}`)));
+      })
+      : el("p", { class: "aide" }, "Ajoute tes achats d'actions ou d'ETF pour suivre ton PEA."),
+    el("div", { style: "height:8px" }),
+    el("button", { class: "principal", onclick: () => { ligneEnEdition = "nouvelle"; rafraichirFeuille(); } }, "＋ Ajouter un achat d'actions"),
+  ];
+}
+
+function formulaireAchat() {
+  const p = donnees.comptes.pea;
+  const nom = el("input", { class: "champ", type: "text", placeholder: "ex. ETF MSCI World", autocomplete: "off", list: "titres-pea" });
+  const quantite = champNombre({ valeur: 0, decimales: 4 });
+  const prix = champNombre({ valeur: 0, decimales: 4 });
+  const caseEspeces = el("input", { type: "checkbox", checked: p.especes > 0 });
+  const total = el("p", { class: "aide" }, "");
+  const majTotal = () => {
+    const t = (lireNombre(quantite.value, 4) || 0) * (lireNombre(prix.value, 4) || 0);
+    total.textContent = t ? `Montant de l'achat : ${euros(t)}` : "";
+  };
+  quantite.addEventListener("input", majTotal);
+  prix.addEventListener("input", majTotal);
+
+  const valider = () => {
+    const n = nom.value.trim();
+    const q = lireNombre(quantite.value, 4), pu = lireNombre(prix.value, 4);
+    if (!n || !q || !pu) { toast("Indique le nom, le nombre d'actions et le prix", "var(--depense)"); return; }
+    // Même titre déjà détenu : on additionne et on recalcule le prix de revient moyen.
+    const existante = p.lignes.find((l) => l.nom.toLowerCase() === n.toLowerCase());
+    if (existante) {
+      const qTotale = existante.quantite + q;
+      existante.pru = Math.round(((existante.quantite * existante.pru + q * pu) / qTotale) * 10000) / 10000;
+      existante.quantite = qTotale;
+      existante.cours = pu;
+    } else {
+      p.lignes.push({ id: nouvelId(), nom: n, quantite: q, pru: pu, cours: pu });
+    }
+    if (caseEspeces.checked) p.especes = Math.max(0, arrondi(p.especes - q * pu));
+    sauver();
+    ligneEnEdition = null;
+    rafraichirFeuille();
+    afficherComptes();
+    toast(`${fmtNombre.format(q)} × ${n} ajouté${q > 1 ? "s" : ""}`, CPT.pea.c);
+  };
+
+  return [
+    el("h3", {}, "Nouvel achat"),
+    el("p", { class: "sous" }, "Si tu possèdes déjà ce titre, les actions s'ajoutent à ta ligne."),
+    el("datalist", { id: "titres-pea" }, p.lignes.map((l) => el("option", { value: l.nom }))),
+    el("div", { class: "form" },
+      el("label", {}, "Nom de l'action ou de l'ETF", nom),
+      el("div", { class: "deux" },
+        el("label", {}, "Nombre d'actions", quantite),
+        el("label", {}, "Prix unitaire (€)", prix)),
+      el("label", { style: "display:flex;align-items:center;gap:10px;color:var(--texte);font-weight:600;font-size:14px" },
+        caseEspeces, `Payé avec les espèces du PEA (${euros(p.especes)})`),
+      total,
+      el("button", { class: "principal", onclick: valider }, "Ajouter l'achat"),
+      el("button", { class: "secondaire", onclick: () => { ligneEnEdition = null; rafraichirFeuille(); } }, "Annuler")),
+  ];
+}
+
+function formulaireLigne(l) {
+  if (!l) { ligneEnEdition = null; return construirePEA(); }
+  const p = donnees.comptes.pea;
+  const nom = el("input", { class: "champ", type: "text", autocomplete: "off" });
+  nom.value = l.nom;
+  const quantite = champNombre({ valeur: l.quantite, decimales: 4 });
+  const pru = champNombre({ valeur: arrondi(l.pru), decimales: 4 });
+  const cours = champNombre({ valeur: l.cours || l.pru, decimales: 4 });
+
+  const valider = () => {
+    const q = lireNombre(quantite.value, 4), pr = lireNombre(pru.value, 4), co = lireNombre(cours.value, 4);
+    if (!nom.value.trim() || !q || !pr) { toast("Nom, nombre d'actions et prix d'achat requis", "var(--depense)"); return; }
+    Object.assign(l, { nom: nom.value.trim(), quantite: q, pru: pr, cours: co || pr });
+    sauver(); ligneEnEdition = null; rafraichirFeuille(); afficherComptes();
+    toast(`${l.nom} mis à jour`, CPT.pea.c);
+  };
+  const supprimerLigne = () => {
+    if (!confirm(`Retirer ${l.nom} de ton PEA ?`)) return;
+    p.lignes = p.lignes.filter((x) => x.id !== l.id);
+    sauver(); ligneEnEdition = null; rafraichirFeuille(); afficherComptes();
+  };
+
+  return [
+    el("h3", {}, l.nom),
+    el("p", { class: "sous" }, "Mets à jour le cours pour suivre ta plus-value."),
+    el("div", { class: "form" },
+      el("label", {}, "Nom", nom),
+      el("label", {}, "Nombre d'actions", quantite),
+      el("div", { class: "deux" },
+        el("label", {}, "Prix d'achat moyen (€)", pru),
+        el("label", {}, "Cours actuel (€)", cours)),
+      el("button", { class: "principal", onclick: valider }, "Enregistrer"),
+      el("button", { class: "secondaire", onclick: () => { ligneEnEdition = null; rafraichirFeuille(); } }, "Retour"),
+      el("button", { class: "danger", onclick: supprimerLigne }, "Retirer cette ligne")),
+  ];
+}
+
+/* =========================================================
+   Historique et sauvegarde
+   ========================================================= */
 
 $("tout-voir").addEventListener("click", () => { $("historique").hidden = false; afficherHistorique(); });
 $("fermer-historique").addEventListener("click", () => { $("historique").hidden = true; });
@@ -252,16 +579,18 @@ $("fichier-import").addEventListener("change", async (e) => {
     const d = JSON.parse(await f.text());
     if (!Array.isArray(d.mouvements)) throw new Error("format");
     if (!confirm(`Remplacer tes données par cette sauvegarde (${d.mouvements.length} mouvements) ?`)) return;
-    donnees = { mouvements: d.mouvements, plans: d.plans || {} };
+    donnees = normaliser(d);
     sauver();
     toutAfficher();
     toast("Sauvegarde importée");
   } catch (err) {
-    toast("Fichier de sauvegarde invalide", false);
+    toast("Fichier de sauvegarde invalide", "var(--depense)");
   }
 });
 
-/* ---------- Diagrammes ---------- */
+/* =========================================================
+   Graphiques
+   ========================================================= */
 
 let moisDiagrammes = debutMois(new Date());
 
@@ -269,56 +598,69 @@ function afficherDiagrammes() {
   selecteurMois(document.querySelector('[data-mois="diagrammes"]'), () => moisDiagrammes,
     (m) => { moisDiagrammes = m; afficherDiagrammes(); });
 
-  // Anneau de répartition
   const parCat = new Map();
   for (const m of duMois(moisDiagrammes).filter((m) => !m.estRevenu)) {
-    const k = m.categorie || "Autre";
+    const k = m.categorie && CAT[m.categorie] ? m.categorie : "Autre";
     parCat.set(k, (parCat.get(k) || 0) + m.montant);
   }
-  const parts = [...parCat.entries()].map(([id, total]) => ({ cat: CAT[id] || CAT.Autre, total })).sort((a, b) => b.total - a.total);
+  const parts = [...parCat.entries()].map(([id, total]) => ({ cat: CAT[id], total })).sort((a, b) => b.total - a.total);
   const total = parts.reduce((s, p) => s + p.total, 0);
 
   if (!parts.length) {
-    $("donut").innerHTML = '<div class="vide"><div class="icone">🍩</div>Aucune dépense ce mois-ci.</div>';
+    $("donut").innerHTML = '<div class="vide"><div class="vide-ico">🍩</div>Aucune dépense ce mois-ci.</div>';
     $("legende").replaceChildren();
   } else {
-    const R = 80, C = 2 * Math.PI * R, ecart = parts.length > 1 ? 2.5 : 0;
+    const R = 78, C = 2 * Math.PI * R, ecart = parts.length > 1 ? 4 : 0;
     let offset = 0;
     const arcs = parts.map((p) => {
       const longueur = (p.total / total) * C;
-      const arc = `<circle r="${R}" cx="100" cy="100" fill="none" stroke="${p.cat.c}" stroke-width="30"
-        stroke-dasharray="${Math.max(longueur - ecart, 0.1)} ${C}" stroke-dashoffset="${-offset}" transform="rotate(-90 100 100)"/>`;
+      const a = { c: p.cat.c, l: Math.max(longueur - ecart, 0.5), o: -offset };
       offset += longueur;
-      return arc;
-    }).join("");
-    $("donut").innerHTML = `<svg viewBox="0 0 200 200" role="img" aria-label="Répartition des dépenses">${arcs}</svg>
-      <div class="centre"><small>Total</small><strong>${eurosRond(total)}</strong></div>`;
-    $("legende").replaceChildren(...parts.map((p) => el("li", {},
-      el("span", {}, p.cat.ico),
+      return a;
+    });
+    $("donut").innerHTML = `<svg viewBox="0 0 200 200" role="img" aria-label="Répartition des dépenses">
+      <circle r="${R}" cx="100" cy="100" fill="none" stroke="var(--surface-2)" stroke-width="22"/>
+      ${arcs.map((a) => `<circle class="arc" r="${R}" cx="100" cy="100" fill="none" stroke="${a.c}" stroke-width="22" stroke-linecap="${parts.length > 1 ? "round" : "butt"}"
+        stroke-dasharray="0 ${C}" data-l="${a.l}" stroke-dashoffset="${a.o}" transform="rotate(-90 100 100)"/>`).join("")}
+      </svg><div class="centre-donut"><small>Dépenses</small><strong>${eurosRond(total)}</strong></div>`;
+    requestAnimationFrame(() => requestAnimationFrame(() =>
+      $("donut").querySelectorAll(".arc").forEach((c) => c.setAttribute("stroke-dasharray", `${c.dataset.l} ${C}`))));
+    $("legende").replaceChildren(...parts.map((p) => el("li", { style: `--c:${p.cat.c}` },
+      el("span", { class: "emo" }, p.cat.ico),
       el("span", { class: "nom" }, p.cat.id),
-      el("span", { class: "val" }, euros(p.total)),
-      el("span", { class: "pct" }, fmtPct.format(p.total / total)))));
+      el("span", { class: "barre-pct" }, el("i", { style: `width:${(p.total / total) * 100}%` })),
+      el("span", { class: "val" }, `${eurosRond(p.total)} · ${fmtPct.format(p.total / total)}`))));
   }
 
-  // Barres sur 6 mois
   const mois = Array.from({ length: 6 }, (_, i) => ajouterMois(moisDiagrammes, i - 5));
   const bilans = mois.map((m) => { const l = duMois(m); return { m, r: revenus(l), d: depenses(l) }; });
   const max = Math.max(1, ...bilans.flatMap((b) => [b.r, b.d]));
-  const L = 320, H = 150, bas = 20, largeurGroupe = L / 6, barre = 16;
-  const h = (v) => (v / max) * (H - bas - 10);
+  const L = 320, H = 160, bas = 22, haut = 14, largeurGroupe = L / 6, barre = 14;
+  const h = (v) => Math.max(v > 0 ? 3 : 0, (v / max) * (H - bas - haut));
+  const grilles = [0.5, 1].map((k) => {
+    const y = H - bas - k * (H - bas - haut);
+    return `<line x1="0" x2="${L}" y1="${y}" y2="${y}" stroke="var(--ligne)" stroke-dasharray="3 4"/>
+      <text x="${L}" y="${y - 4}" text-anchor="end">${eurosRond(max * k)}</text>`;
+  }).join("");
   const barres = bilans.map((b, i) => {
     const x = i * largeurGroupe + largeurGroupe / 2;
     const nom = b.m.toLocaleDateString("fr-FR", { month: "short" }).replace(".", "");
-    return `<rect x="${x - barre - 1}" y="${H - bas - h(b.r)}" width="${barre}" height="${h(b.r)}" rx="3" fill="var(--vert)"/>
-      <rect x="${x + 1}" y="${H - bas - h(b.d)}" width="${barre}" height="${h(b.d)}" rx="3" fill="var(--rouge)"/>
-      <text x="${x}" y="${H - 4}" text-anchor="middle">${nom}</text>`;
+    const courant = cleMois(b.m) === cleMois(moisDiagrammes);
+    return `<rect x="${x - barre - 2}" y="${H - bas - h(b.r)}" width="${barre}" height="${h(b.r)}" rx="5" fill="url(#gR)" style="animation-delay:${i * 50}ms"/>
+      <rect x="${x + 2}" y="${H - bas - h(b.d)}" width="${barre}" height="${h(b.d)}" rx="5" fill="url(#gD)" style="animation-delay:${i * 50 + 25}ms"/>
+      <text x="${x}" y="${H - 5}" text-anchor="middle" style="${courant ? "fill:var(--texte);font-weight:800" : ""}">${nom}</text>`;
   }).join("");
   $("barres").innerHTML = `<svg viewBox="0 0 ${L} ${H}" role="img" aria-label="Revenus et dépenses sur 6 mois">
-    <line x1="0" x2="${L}" y1="${H - bas}" y2="${H - bas}" stroke="var(--separateur)"/>${barres}
-    <text x="0" y="8">${eurosRond(max)}</text></svg>`;
+    <defs>
+      <linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#059669"/></linearGradient>
+      <linearGradient id="gD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fb7185"/><stop offset="1" stop-color="#e11d48"/></linearGradient>
+    </defs>
+    ${grilles}<line x1="0" x2="${L}" y1="${H - bas}" y2="${H - bas}" stroke="var(--ligne)"/>${barres}</svg>`;
 }
 
-/* ---------- Épargne ---------- */
+/* =========================================================
+   Épargne
+   ========================================================= */
 
 let moisEpargne = debutMois(new Date());
 const champRevenus = $("revenus-prevus");
@@ -331,26 +673,19 @@ function planAffiche() {
   const p = precedents.length ? donnees.plans[precedents[precedents.length - 1]] : null;
   return { revenus: p ? p.revenus : 0, niveau: p ? p.niveau : "moyen" };
 }
-
 function modifierPlan(changement) {
-  const cle = cleMois(moisEpargne);
-  donnees.plans[cle] = { ...planAffiche(), ...changement };
+  donnees.plans[cleMois(moisEpargne)] = { ...planAffiche(), ...changement };
   sauver();
 }
 
 champRevenus.addEventListener("input", () => {
-  let v = champRevenus.value.replace(/[^\d.,]/g, "").replace(".", ",");
-  const i = v.indexOf(",");
-  if (i >= 0) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/,/g, "").slice(0, 2);
-  champRevenus.value = v.slice(0, 10);
+  nettoyerSaisie(champRevenus);
   ajusterLargeur(champRevenus);
-  modifierPlan({ revenus: lireMontant(v) || 0 });
+  modifierPlan({ revenus: lireMontant(champRevenus.value) || 0 });
   afficherEpargne(false);
 });
-
 $("utiliser-recus").addEventListener("click", () => {
-  const recus = revenus(duMois(moisEpargne));
-  modifierPlan({ revenus: recus });
+  modifierPlan({ revenus: revenus(duMois(moisEpargne)) });
   afficherEpargne(true);
 });
 
@@ -360,10 +695,7 @@ function afficherEpargne(rechargerChamp = true) {
 
   const plan = planAffiche();
   const niveau = NIV[plan.niveau] || NIV.moyen;
-  if (rechargerChamp) {
-    champRevenus.value = plan.revenus ? fmtSaisie.format(plan.revenus) : "";
-    ajusterLargeur(champRevenus);
-  }
+  if (rechargerChamp) { champRevenus.value = texteSaisie(plan.revenus); ajusterLargeur(champRevenus); }
 
   const l = duMois(moisEpargne);
   const recus = revenus(l);
@@ -380,30 +712,52 @@ function afficherEpargne(rechargerChamp = true) {
 
   const res = $("resultat");
   if (!plan.revenus) {
-    res.innerHTML = '<p class="aide">Indique tes rentrées d\'argent prévues pour savoir combien mettre de côté ce mois-ci.</p>';
+    res.innerHTML = '<div class="vide"><div class="vide-ico">🎯</div>Indique tes rentrées d\'argent prévues pour savoir combien mettre de côté ce mois-ci.</div>';
     return;
   }
   const aEpargner = Math.round(plan.revenus * niveau.taux);
+  const dejaPlace = places(l);
   const budget = plan.revenus - aEpargner;
   const depense = depenses(l);
   const reste = budget - depense;
-  const part = budget > 0 ? Math.min(1, depense / budget) : 1;
+  const partDepense = budget > 0 ? Math.min(1, depense / budget) : 1;
+  const progres = aEpargner > 0 ? Math.min(1, dejaPlace / aEpargner) : 0;
+  const R = 80, C = 2 * Math.PI * R;
+
   res.innerHTML = `
-    <small>À mettre de côté</small>
-    <div class="grand" style="color:${niveau.c}">${eurosRond(aEpargner)}</div>
-    <small>${niveau.nom} · ${fmtPct.format(niveau.taux)} de ${eurosRond(plan.revenus)}</small>
+    <div class="anneau">
+      <svg viewBox="0 0 200 200">
+        <defs><linearGradient id="gA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${niveau.c}" stop-opacity=".55"/><stop offset="1" stop-color="${niveau.c}"/></linearGradient></defs>
+        <circle r="${R}" cx="100" cy="100" fill="none" stroke="var(--surface-2)" stroke-width="16"/>
+        <circle id="arc-epargne" r="${R}" cx="100" cy="100" fill="none" stroke="url(#gA)" stroke-width="16" stroke-linecap="round"
+          stroke-dasharray="${C}" stroke-dashoffset="${C}"/>
+      </svg>
+      <div class="centre-anneau"><small>À mettre de côté</small><div class="grand">${eurosRond(aEpargner)}</div>
+        <small>${niveau.ico} ${niveau.nom} · ${fmtPct.format(niveau.taux)}</small></div>
+    </div>
+    <p class="aide">${dejaPlace > 0
+      ? `Déjà placé ce mois-ci : <b style="color:var(--texte)">${euros(dejaPlace)}</b> (${fmtPct.format(progres)})`
+      : "Place tes revenus sur un livret ou ton PEA pour remplir l'anneau."}</p>
     <hr>
+    <div class="ligne-res"><span>Rentrées prévues</span><span>${euros(plan.revenus)}</span></div>
     <div class="ligne-res"><span>Budget pour tes dépenses</span><span>${euros(budget)}</span></div>
     <div class="ligne-res"><span>Déjà dépensé</span><span>${euros(depense)}</span></div>
-    <div class="ligne-res"><span>Reste à dépenser</span><span style="font-weight:700;${reste < 0 ? "color:var(--rouge)" : ""}">${euros(reste)}</span></div>
-    <div class="jauge"><div style="width:${part * 100}%;background:${reste < 0 ? "var(--rouge)" : niveau.c}"></div></div>
+    <div class="ligne-res"><span>Reste à dépenser</span><span style="font-weight:800;${reste < 0 ? "color:var(--depense)" : ""}">${euros(reste)}</span></div>
+    <div class="jauge"><div style="width:${partDepense * 100}%;background:${reste < 0 ? "var(--depense)" : `linear-gradient(90deg, ${niveau.c}99, ${niveau.c})`}"></div></div>
     ${reste < 0 ? `<p class="alerte">Attention : tu dépasses ton budget de ${euros(-reste)}.</p>` : ""}`;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const arc = $("arc-epargne");
+    if (arc) arc.setAttribute("stroke-dashoffset", String(C * (1 - progres)));
+  }));
 }
 
-/* ---------- Démarrage ---------- */
+/* =========================================================
+   Démarrage
+   ========================================================= */
 
 function toutAfficher() {
   afficherAccueil();
+  afficherComptes();
   afficherDiagrammes();
   afficherEpargne(document.activeElement !== champRevenus);
   if (!$("historique").hidden) afficherHistorique();
@@ -413,7 +767,6 @@ afficherChips();
 ajusterLargeur(champMontant);
 toutAfficher();
 
-// Le mois change pendant que l'app reste ouverte.
 document.addEventListener("visibilitychange", () => { if (!document.hidden) toutAfficher(); });
 
 if ("serviceWorker" in navigator) {

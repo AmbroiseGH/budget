@@ -1,6 +1,6 @@
 # Budget
 
-Une app ultra simple pour suivre ses revenus, ses dépenses et son épargne.
+Une app ultra simple pour suivre ses revenus, ses dépenses, ses livrets et son PEA.
 
 **Ouvrir l'app : https://ambroisegh.github.io/budget/**
 
@@ -14,8 +14,9 @@ L'icône « Budget » apparaît sur ton écran d'accueil. L'app s'ouvre en plein
 
 ## Ce qu'elle fait
 
-- **Accueil** : tape un montant, ajoute si tu veux un libellé et une catégorie, puis touche **Revenu** ou **Dépense**. Le résumé du mois et les derniers mouvements sont juste en dessous. Touche un mouvement pour le supprimer.
-- **Diagrammes** : la répartition des dépenses du mois par catégorie, et les revenus/dépenses des 6 derniers mois.
+- **Accueil** : tape un montant, ajoute si tu veux un libellé et une catégorie, puis touche **Revenu** ou **Dépense**. Pour un revenu, l'app te demande s'il va sur le compte courant, le Livret A, le Livret Jeune ou le PEA, et crédite le compte choisi. Le résumé du mois et les derniers mouvements sont juste en dessous. Touche un mouvement pour le supprimer.
+- **Comptes** : ton Livret A, ton Livret Jeune et ton PEA, avec leur plafond. Pour le PEA, tu ajoutes tes achats d'actions (nom, nombre d'actions, prix) et tu mets à jour le cours pour voir ta plus-value.
+- **Graphiques** : la répartition des dépenses du mois par catégorie, et les revenus/dépenses des 6 derniers mois.
 - **Épargne** : indique tes rentrées prévues du mois et choisis un niveau, Énorme (40 %), Grand (25 %), Moyen (15 %) ou Petit (5 %). L'app te dit combien mettre de côté et combien il te reste à dépenser.
 
 ## Tes données
@@ -25,5 +26,6 @@ Elles restent uniquement sur ton téléphone, dans Safari (aucun compte, aucun s
 ## Organisation du dépôt
 
 - `index.html`, `style.css`, `app.js` : l'app web (sans dépendance, rien à compiler).
+- `fonts/` : police Plus Jakarta Sans (licence OFL), hébergée avec l'app.
 - `sw.js`, `manifest.webmanifest`, `icons/` : installation sur l'écran d'accueil et mode hors ligne. Quand tu modifies un fichier, change `VERSION` dans `sw.js` pour que les téléphones récupèrent la nouvelle version.
 - `ios/` : la version native SwiftUI, à ouvrir avec Xcode (voir `ios/LISEZMOI.md`).

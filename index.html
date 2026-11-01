@@ -4,23 +4,38 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Budget</title>
-  <meta name="description" content="Suivi simple des revenus, dépenses et de l'épargne.">
+  <meta name="description" content="Suivi simple des revenus, dépenses, comptes d'épargne et du PEA.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Budget">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f3f4fa" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a0a12" media="(prefers-color-scheme: dark)">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="fonts/jakarta-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="halo" aria-hidden="true"></div>
+
   <main>
     <!-- ACCUEIL -->
     <section id="accueil" class="onglet actif">
-      <h1>Accueil</h1>
+      <header class="tete">
+        <p id="salut" class="sur-titre"></p>
+        <h1 id="titre-accueil"></h1>
+      </header>
+
+      <div class="hero">
+        <p class="hero-label">Solde du mois</p>
+        <p id="hero-solde" class="hero-montant">0 €</p>
+        <div class="hero-pilules">
+          <span class="pilule"><i class="fleche-ico haut">↓</i><span><small>Revenus</small><b id="hero-revenus"></b></span></span>
+          <span class="pilule"><i class="fleche-ico bas">↑</i><span><small>Dépenses</small><b id="hero-depenses"></b></span></span>
+        </div>
+      </div>
 
       <div class="carte saisie">
         <label class="montant" for="montant">
@@ -30,17 +45,8 @@
         <input id="libelle" class="champ" type="text" placeholder="Libellé (facultatif)" autocomplete="off" enterkeyhint="done">
         <div id="chips" class="chips" role="group" aria-label="Catégorie"></div>
         <div class="boutons">
-          <button id="btn-revenu" class="gros vert" disabled>＋ Revenu</button>
-          <button id="btn-depense" class="gros rouge" disabled>− Dépense</button>
-        </div>
-      </div>
-
-      <div class="carte">
-        <h2 id="solde-mois"></h2>
-        <div class="trio">
-          <div><small>Revenus</small><strong id="solde-revenus" class="txt-vert"></strong></div>
-          <div><small>Dépenses</small><strong id="solde-depenses" class="txt-rouge"></strong></div>
-          <div><small>Solde</small><strong id="solde-total"></strong></div>
+          <button id="btn-revenu" class="gros revenu" disabled><span class="rond">＋</span>Revenu</button>
+          <button id="btn-depense" class="gros depense" disabled><span class="rond">−</span>Dépense</button>
         </div>
       </div>
 
@@ -50,14 +56,33 @@
           <button id="tout-voir" class="lien" hidden>Tout voir</button>
         </div>
         <ul id="derniers" class="liste"></ul>
-        <p id="vide-accueil" class="aide">Tape un montant puis touche Revenu ou Dépense.</p>
+        <div id="vide-accueil" class="vide"><div class="vide-ico">✍️</div>Tape un montant puis touche Revenu ou Dépense.</div>
       </div>
     </section>
 
-    <!-- DIAGRAMMES -->
+    <!-- COMPTES -->
+    <section id="comptes" class="onglet">
+      <header class="tete">
+        <p class="sur-titre">Ton épargne</p>
+        <h1>Comptes</h1>
+      </header>
+      <div class="hero hero-comptes">
+        <p class="hero-label">Épargne totale</p>
+        <p id="total-epargne" class="hero-montant">0 €</p>
+        <div id="barre-repartition" class="barre-repartition"></div>
+        <div id="legende-comptes" class="legende-comptes"></div>
+      </div>
+      <div id="liste-comptes" class="liste-comptes"></div>
+      <p class="aide centre">Touche un compte pour modifier son montant.<br>Chaque revenu peut être placé sur l'un d'eux.</p>
+    </section>
+
+    <!-- GRAPHIQUES -->
     <section id="diagrammes" class="onglet">
-      <h1>Diagrammes</h1>
-      <div class="carte mois" data-mois="diagrammes"></div>
+      <header class="tete">
+        <p class="sur-titre">Où va ton argent</p>
+        <h1>Graphiques</h1>
+      </header>
+      <div class="selecteur-mois" data-mois="diagrammes"></div>
       <div class="carte">
         <h2>Répartition des dépenses</h2>
         <div id="donut"></div>
@@ -66,14 +91,17 @@
       <div class="carte">
         <h2>Revenus et dépenses sur 6 mois</h2>
         <div id="barres"></div>
-        <div class="cles"><span><i class="pt vert"></i>Revenus</span><span><i class="pt rouge"></i>Dépenses</span></div>
+        <div class="cles"><span><i class="pt revenu"></i>Revenus</span><span><i class="pt depense"></i>Dépenses</span></div>
       </div>
     </section>
 
     <!-- ÉPARGNE -->
     <section id="epargne" class="onglet">
-      <h1>Épargne</h1>
-      <div class="carte mois" data-mois="epargne"></div>
+      <header class="tete">
+        <p class="sur-titre">Objectif du mois</p>
+        <h1>Épargne</h1>
+      </header>
+      <div class="selecteur-mois" data-mois="epargne"></div>
       <div class="carte">
         <h2>Rentrées d'argent prévues</h2>
         <label class="montant gauche" for="revenus-prevus">
@@ -83,7 +111,7 @@
         <button id="utiliser-recus" class="lien" hidden></button>
       </div>
       <div class="carte">
-        <h2>Niveau d'épargne du mois</h2>
+        <h2>Niveau d'épargne</h2>
         <div id="niveaux" class="niveaux"></div>
       </div>
       <div id="resultat" class="carte resultat"></div>
@@ -91,36 +119,45 @@
   </main>
 
   <!-- HISTORIQUE (plein écran) -->
-  <section id="historique" class="feuille" hidden>
-    <div class="barre-feuille">
-      <button id="fermer-historique" class="lien">‹ Accueil</button>
+  <section id="historique" class="page" hidden>
+    <div class="barre-page">
+      <button id="fermer-historique" class="lien">‹ Retour</button>
       <strong>Mouvements</strong>
       <span></span>
     </div>
-    <div class="contenu-feuille">
+    <div class="contenu-page">
       <p class="aide">Touche un mouvement pour le supprimer.</p>
       <div id="historique-liste"></div>
       <div class="carte">
         <h2>Sauvegarde</h2>
         <p class="aide">Tes données restent sur ce téléphone. Exporte-les de temps en temps pour ne rien perdre.</p>
         <div class="boutons">
-          <button id="exporter" class="moyen">Exporter</button>
-          <button id="importer" class="moyen">Importer</button>
+          <button id="exporter" class="secondaire">Exporter</button>
+          <button id="importer" class="secondaire">Importer</button>
         </div>
         <input id="fichier-import" type="file" accept="application/json,.json" hidden>
       </div>
     </div>
   </section>
 
+  <!-- FEUILLE DU BAS (choix du compte, édition des comptes) -->
+  <div id="feuille" class="feuille" hidden>
+    <div class="voile" data-fermer></div>
+    <div id="feuille-panneau" class="panneau" role="dialog" aria-modal="true"></div>
+  </div>
+
   <nav class="tabbar">
-    <button data-onglet="accueil" class="actif">
-      <svg viewBox="0 0 24 24"><path d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z"/></svg>Accueil
+    <button data-onglet="accueil" class="actif" aria-label="Accueil">
+      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>Accueil</span>
     </button>
-    <button data-onglet="diagrammes">
-      <svg viewBox="0 0 24 24"><path d="M11 2.05A10 10 0 1 0 21.95 13H11z"/><path d="M13 2.05V11h8.95A10 10 0 0 0 13 2.05z"/></svg>Diagrammes
+    <button data-onglet="comptes" aria-label="Comptes">
+      <svg viewBox="0 0 24 24"><path d="M3 7a3 3 0 0 1 3-3h11a1 1 0 0 1 1 1v2h1a2 2 0 0 1 2 2v9a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3zm3-1a1 1 0 0 0 0 2h10V6zm11 7.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg><span>Comptes</span>
     </button>
-    <button data-onglet="epargne">
-      <svg viewBox="0 0 24 24"><path d="M2 6h20v12H2zm10 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM5 8.5a1.5 1.5 0 0 1-1.5 1.5v4A1.5 1.5 0 0 1 5 15.5h0zm14 0V15.5a1.5 1.5 0 0 1 1.5-1.5v-4A1.5 1.5 0 0 1 19 8.5z" fill-rule="evenodd"/></svg>Épargne
+    <button data-onglet="diagrammes" aria-label="Graphiques">
+      <svg viewBox="0 0 24 24"><path d="M11 2.05A10 10 0 1 0 21.95 13H11z"/><path d="M13 2.05V11h8.95A10 10 0 0 0 13 2.05z"/></svg><span>Graphiques</span>
+    </button>
+    <button data-onglet="epargne" aria-label="Épargne">
+      <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 4a6 6 0 1 1-6 6 6 6 0 0 1 6-6zm0 3a3 3 0 1 0 3 3 3 3 0 0 0-3-3z" fill-rule="evenodd"/></svg><span>Épargne</span>
     </button>
   </nav>
 
