@@ -48,7 +48,7 @@ function valide(d) {
 }
 let donnees = charger();
 function sauver() {
-  try { localStorage.setItem(CLE, JSON.stringify(donnees)); } catch (e) { toast("Impossible d'enregistrer", { couleur: "var(--rouge)", icone: "!" }); }
+  try { localStorage.setItem(CLE, JSON.stringify(donnees)); window.Sauvegarde?.signaler(); } catch (e) { toast("Impossible d'enregistrer", { couleur: "var(--rouge)", icone: "!" }); }
 }
 
 /* =========================================================
@@ -431,6 +431,7 @@ function ouvrirGestion() {
     el("div", { class: "duo" },
       el("button", { class: "secondaire", onclick: exporter }, "Exporter"),
       el("button", { class: "secondaire", onclick: () => $("fichier").click() }, "Importer")),
+    el("button", { class: "secondaire", onclick: () => { fermerFeuille(); setTimeout(() => window.Sauvegarde?.ouvrir(), 250); } }, "☁️ Sauvegarde GitHub"),
   );
   remplir();
 }

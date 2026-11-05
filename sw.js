@@ -1,6 +1,6 @@
 // Garde l'app disponible hors ligne. Changer VERSION à chaque mise à jour des fichiers.
-const VERSION = "budget-v5";
-const FICHIERS = ["./", "index.html", "style.css", "app.js", "manifest.webmanifest",
+const VERSION = "budget-v6";
+const FICHIERS = ["./", "index.html", "style.css", "app.js", "sauvegarde.js", "manifest.webmanifest",
   "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "fonts/jakarta-400.woff2", "fonts/jakarta-500.woff2", "fonts/jakarta-600.woff2", "fonts/jakarta-700.woff2", "fonts/jakarta-800.woff2"];
 

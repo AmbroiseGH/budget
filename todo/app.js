@@ -45,7 +45,7 @@ const donnees = charger();
 donnees.emojis ||= {}; // emojis choisis à la main, par nom de tâche
 const emojiChoisi = (nom) => donnees.emojis[norm(nom)] || emojiPour(nom);
 function sauver() {
-  try { localStorage.setItem(CLE, JSON.stringify(donnees)); } catch (e) { toast("Impossible d'enregistrer", { couleur: "var(--rouge)", icone: "!" }); }
+  try { localStorage.setItem(CLE, JSON.stringify(donnees)); window.Sauvegarde?.signaler(); } catch (e) { toast("Impossible d'enregistrer", { couleur: "var(--rouge)", icone: "!" }); }
 }
 const tache = (id) => donnees.taches.find((t) => t.id === id);
 
@@ -693,6 +693,7 @@ function ouvrirToutVoir() {
       el("div", { class: "stat" }, el("b", { style: retard.length ? "color:var(--rouge)" : null }, String(retard.length)), el("span", {}, "en retard"))),
     el("p", { class: "titre-groupe" }, " "),
     onglets, corps,
+    el("button", { class: "secondaire", onclick: () => { fermerFeuille(); setTimeout(() => window.Sauvegarde?.ouvrir(), 250); } }, "☁️ Sauvegarde GitHub"),
     el("button", { class: "secondaire", onclick: fermerFeuille }, "Fermer"),
   );
   remplir();

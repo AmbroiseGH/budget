@@ -49,7 +49,7 @@ const donnees = charger();
 donnees.emojis ||= {}; // emojis choisis à la main, par nom d'aliment
 const emojiChoisi = (nom) => donnees.emojis[norm(nom)] || emojiPour(nom);
 function sauver() {
-  try { localStorage.setItem(CLE, JSON.stringify(donnees)); } catch (e) { toast("Impossible d'enregistrer", { couleur: "var(--rouge)", icone: "!" }); }
+  try { localStorage.setItem(CLE, JSON.stringify(donnees)); window.Sauvegarde?.signaler(); } catch (e) { toast("Impossible d'enregistrer", { couleur: "var(--rouge)", icone: "!" }); }
 }
 
 // "2 lait", "lait x2", "3× pommes" → { nom, qte }
@@ -539,6 +539,7 @@ function ouvrirGestion() {
         }, k * 110));
       }, 300);
     } }, "Tout ajouter à la liste"),
+    el("button", { class: "secondaire", onclick: () => { fermerFeuille(); setTimeout(() => window.Sauvegarde?.ouvrir(), 250); } }, "☁️ Sauvegarde GitHub"),
   );
   remplir();
   f.hidden = false;

@@ -145,7 +145,8 @@
       <div id="historique-liste"></div>
       <div class="carte">
         <h2>Sauvegarde</h2>
-        <p class="aide">Tes données restent sur ce téléphone. Exporte-les de temps en temps pour ne rien perdre.</p>
+        <p class="aide">Tes données restent sur ce téléphone. Active la sauvegarde GitHub pour en garder une copie automatique dans ton dépôt privé, ou exporte-les de temps en temps.</p>
+        <button id="sauvegarde-github" class="secondaire large" style="margin-bottom:12px">☁️ Sauvegarde GitHub</button>
         <div class="boutons">
           <button id="exporter" class="secondaire">Exporter</button>
           <button id="importer" class="secondaire">Importer</button>
@@ -188,6 +189,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <script src="sauvegarde.js" data-app="budget" data-nom="Budget" data-cle="budget.v1" data-requis="mouvements" data-unite="mouvement"></script>
   <script src="app.js"></script>
 </body>
 </html>

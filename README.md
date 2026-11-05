@@ -26,7 +26,7 @@ L'icône « Budget » apparaît sur ton écran d'accueil. L'app s'ouvre en plein
 
 ## Tes données
 
-Elles restent uniquement sur ton téléphone, dans Safari (aucun compte, aucun serveur). Pense à utiliser **Tout voir → Exporter** de temps en temps pour garder une copie de sauvegarde. Si tu supprimes l'icône de l'écran d'accueil ou effaces les données de Safari, elles sont perdues sans sauvegarde.
+Elles restent sur ton téléphone. Tu peux en envoyer automatiquement une copie dans ton propre dépôt GitHub privé : voir **[SAUVEGARDE.md](SAUVEGARDE.md)** (valable pour les 5 apps). Tu peux aussi utiliser **Tout voir → Exporter** pour garder un fichier de secours. Si tu supprimes l'icône de l'écran d'accueil ou effaces les données de Safari, elles sont perdues sans sauvegarde.
 
 ## Organisation du dépôt
 
