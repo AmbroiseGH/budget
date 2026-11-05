@@ -46,6 +46,8 @@ function charger() {
   return { articles: [], recurrents: RECURRENTS_DEPART.map((nom) => ({ id: uid(), nom, emoji: emojiPour(nom) })) };
 }
 const donnees = charger();
+donnees.emojis ||= {}; // emojis choisis à la main, par nom d'aliment
+const emojiChoisi = (nom) => donnees.emojis[norm(nom)] || emojiPour(nom);
 function sauver() {
   try { localStorage.setItem(CLE, JSON.stringify(donnees)); } catch (e) { toast("Impossible d'enregistrer", { couleur: "var(--rouge)", icone: "!" }); }
 }
@@ -155,7 +157,7 @@ function creerArticle(id) {
     el("div", { class: "fond-suppr", html: SVG_POUBELLE + "Supprimer" }),
     el("div", { class: "rangee" },
       el("span", { class: "coche", html: SVG_COCHE }),
-      el("span", { class: "emoji" }),
+      el("button", { class: "emoji", "aria-label": "Changer l'emoji" }),
       el("span", { class: "infos" }, el("span", { class: "nom" }), el("span", { class: "qte" })),
       el("button", { class: "etoile", "aria-label": "Garder en récurrent", html: SVG_ETOILE }),
     ),
@@ -253,7 +255,7 @@ function ajouter(texte, { emoji, source } = {}) {
     if (a.fait) { a.fait = false; a.qte = qte; a.ajout = Date.now(); }
     else a.qte += qte;
   } else {
-    a = { id: uid(), nom, qte, emoji: emoji || trouverRecurrent(nom)?.emoji || emojiPour(nom), fait: false, ajout: Date.now() };
+    a = { id: uid(), nom, qte, emoji: emoji || trouverRecurrent(nom)?.emoji || emojiChoisi(nom), fait: false, ajout: Date.now() };
     donnees.articles.push(a);
   }
   sauver();
@@ -377,6 +379,7 @@ function activerGlisser(e) {
     if (!a) return;
     const et = ev.target.closest(".etoile");
     if (et) basculerRecurrent(a.nom, a.emoji, et);
+    else if (ev.target.closest(".emoji")) ouvrirEmojis(a.nom, a.emoji);
     else basculer(id);
   });
 }
@@ -390,7 +393,7 @@ function brancherSaisie(form, input, apercu, bouton, surAjout) {
   input.addEventListener("input", () => {
     const v = input.value.trim();
     bouton.disabled = !v;
-    const e = v ? emojiPour(lireSaisie(v).nom) : "🛒";
+    const e = v ? emojiChoisi(lireSaisie(v).nom) : "🛒";
     if (e !== dernier) { apercu.textContent = e; rejouer(apercu, "saut"); dernier = e; }
   });
   form.addEventListener("submit", (ev) => {
@@ -417,7 +420,7 @@ brancherSaisie($("form-ajout"), $("saisie"), $("apercu-emoji"), $("btn-ajout"), 
 let recPremier = true;
 function rendreRecurrents() {
   const zone = $("recurrents");
-  const cle = donnees.recurrents.map((r) => r.id).join();
+  const cle = donnees.recurrents.map((r) => r.id + r.emoji).join();
   if (zone.dataset.cle !== cle) {
     zone.dataset.cle = cle;
     zone.replaceChildren(...donnees.recurrents.map((r, i) => {
@@ -455,7 +458,7 @@ function ouvrirGestion() {
 
   const remplir = () => {
     gestion.replaceChildren(...donnees.recurrents.map((r) => el("div", { class: "ligne-rec" },
-      el("span", { class: "emoji" }, r.emoji), el("b", {}, r.nom),
+      el("button", { class: "emoji", "aria-label": `Changer l'emoji de ${r.nom}`, onclick: () => ouvrirEmojis(r.nom, r.emoji, ouvrirGestion) }, r.emoji), el("b", {}, r.nom),
       el("button", { class: "moins", "aria-label": `Retirer ${r.nom}`, onclick: (ev) => {
         const ligne = ev.currentTarget.parentElement;
         replier(ligne).then(() => { donnees.recurrents = donnees.recurrents.filter((x) => x !== r); sauver(); remplir(); rendre(); });
@@ -466,7 +469,7 @@ function ouvrirGestion() {
   brancherSaisie(form, champ, apercu, bouton, (v) => {
     const { nom } = lireSaisie(v);
     if (trouverRecurrent(nom)) { toast(`${nom} est déjà là`, { couleur: "var(--doux)", icone: "i" }); return; }
-    donnees.recurrents.push({ id: uid(), nom, emoji: emojiPour(nom) });
+    donnees.recurrents.push({ id: uid(), nom, emoji: emojiChoisi(nom) });
     sauver(); remplir(); rendre();
     gestion.lastElementChild?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   });
@@ -492,6 +495,74 @@ function ouvrirGestion() {
   f.hidden = false;
   requestAnimationFrame(() => requestAnimationFrame(() => f.classList.add("ouverte")));
 }
+/* =========================================================
+   Feuille « Choisir un emoji »
+   ========================================================= */
+
+const CHOIX_EMOJIS = [
+  ["Fruits et légumes", "🍎🍏🍐🍊🍋🍌🍉🍇🍓🫐🍒🍑🥭🍍🥥🥝🍅🥑🍆🥔🥕🌽🌶️🫑🥒🥬🥦🧄🧅🍄🥜🫘🌰🫛🥗"],
+  ["Frais", "🥛🧀🧈🥚🥣🍦🥩🍗🥓🌭🍖🐟🦐🦑🦀🍤🥟🍕🍔🥪🌮🌯🥙🍝🍜🍲🍛🍣🍱"],
+  ["Épicerie et boulangerie", "🍞🥖🥐🥯🥨🧇🥞🍚🍙🌾🧂🫒🍯🫙🥫🍫🍪🍩🍰🧁🍬🍭🍿🥜"],
+  ["Boissons", "💧🥤🧃☕🍵🧋🍷🍺🍾🥂🍹🧉🧊"],
+  ["Maison et hygiène", "🧻🧼🧽🧴🪥🧺🧹🪣🗑️🧯🔋💡🕯️💊🩹👶🐾🐱🐶🌸💐🛍️🎁🛒"],
+];
+
+function premierEmoji(texte) {
+  const t = texte.trim();
+  if (!t) return "";
+  if (window.Intl?.Segmenter) return [...new Intl.Segmenter("fr", { granularity: "grapheme" }).segment(t)][0].segment;
+  return [...t][0];
+}
+
+function changerEmoji(nom, emoji) {
+  const n = norm(nom);
+  donnees.emojis[n] = emoji;
+  for (const a of donnees.articles) if (norm(a.nom) === n) a.emoji = emoji;
+  for (const r of donnees.recurrents) if (norm(r.nom) === n) r.emoji = emoji;
+  sauver();
+  rendre();
+  const a = trouverArticle(nom), e = a && elements.get(a.id);
+  if (e && !reduit) e.querySelector(".emoji").animate([{ transform: "scale(.3) rotate(-30deg)" }, { transform: "none" }], { duration: 500, easing: ressort });
+  const chip = [...document.querySelectorAll(".rec")].find((b) => norm(b.querySelector(".n").textContent) === n);
+  if (chip) rejouer(chip, "tape");
+}
+
+function ouvrirEmojis(nom, actuel, retour) {
+  const panneau = $("feuille-panneau"), f = $("feuille");
+  const grand = el("div", { class: "emoji-actuel" }, actuel);
+  const choisir = (e, bouton) => {
+    grand.textContent = e;
+    rejouer(grand, "saut");
+    panneau.querySelectorAll(".grille-emojis button.choisi").forEach((b) => b.classList.remove("choisi"));
+    bouton?.classList.add("choisi");
+    changerEmoji(nom, e);
+    setTimeout(() => (retour ? retour() : fermerFeuille()), 320);
+  };
+  const champ = el("input", { type: "text", placeholder: "Ou tape un emoji…", "aria-label": "Emoji au clavier", enterkeyhint: "done" });
+  const bouton = el("button", { class: "btn-plus", type: "submit", "aria-label": "Valider", disabled: true, html: SVG_COCHE });
+  champ.addEventListener("input", () => { bouton.disabled = !/\p{Extended_Pictographic}/u.test(champ.value); });
+  const form = el("form", { class: "ajout ajout-emoji", autocomplete: "off", onsubmit: (ev) => {
+    ev.preventDefault();
+    const e = premierEmoji(champ.value);
+    if (/\p{Extended_Pictographic}/u.test(e)) choisir(e);
+  } }, el("span", { class: "apercu", "aria-hidden": "true" }, "⌨️"), champ, bouton);
+
+  panneau.replaceChildren(
+    el("div", { class: "poignee" }),
+    el("div", { class: "tete-emoji" }, grand, el("div", {}, el("h3", {}, nom), el("p", { class: "sous" }, "Choisis l'emoji de cet article."))),
+    ...CHOIX_EMOJIS.map(([titre, liste]) => [
+      el("p", { class: "titre-groupe" }, titre),
+      el("div", { class: "grille-emojis" }, [...new Intl.Segmenter("fr", { granularity: "grapheme" }).segment(liste)].map(({ segment: e }) =>
+        el("button", { class: e === actuel ? "choisi" : null, "aria-label": e, onclick: (ev) => choisir(e, ev.currentTarget) }, e))),
+    ]).flat(),
+    form,
+    el("button", { class: "secondaire", onclick: () => { delete donnees.emojis[norm(nom)]; choisir(emojiPour(nom)); } }, "Emoji automatique"),
+  );
+  panneau.scrollTop = 0;
+  f.hidden = false;
+  requestAnimationFrame(() => requestAnimationFrame(() => f.classList.add("ouverte")));
+}
+
 function fermerFeuille() {
   const f = $("feuille");
   document.activeElement?.blur();
