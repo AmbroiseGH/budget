@@ -76,7 +76,7 @@ function normaliser(d) {
 }
 
 function sauver() {
-  try { localStorage.setItem(CLE, JSON.stringify(donnees)); } catch (e) { toast("Impossible d'enregistrer", "var(--depense)"); }
+  try { localStorage.setItem(CLE, JSON.stringify(donnees)); window.Sauvegarde?.signaler(); } catch (e) { toast("Impossible d'enregistrer", "var(--depense)"); }
 }
 
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
@@ -630,6 +630,7 @@ $("exporter").addEventListener("click", async () => {
   }
 });
 $("importer").addEventListener("click", () => $("fichier-import").click());
+$("sauvegarde-github").addEventListener("click", () => window.Sauvegarde?.ouvrir());
 $("fichier-import").addEventListener("change", async (e) => {
   const f = e.target.files[0];
   e.target.value = "";

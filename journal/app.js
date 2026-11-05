@@ -27,7 +27,7 @@ function charger() {
 }
 let donnees = charger();
 function sauver() {
-  try { localStorage.setItem(CLE, JSON.stringify(donnees)); }
+  try { localStorage.setItem(CLE, JSON.stringify(donnees)); window.Sauvegarde?.signaler(); }
   catch (e) { toast("Impossible d'enregistrer sur ce téléphone", { icone: "!" }); }
 }
 
@@ -983,7 +983,8 @@ function ouvrirReglages() {
     sons,
     el("button", { class: "reglage", onclick: exporter }, el("span", { class: "ico" }, "📤"), el("span", { class: "t" }, "Exporter mon journal", el("small", {}, "Une copie de sauvegarde à garder"))),
     el("button", { class: "reglage", onclick: () => $("fichier").click() }, el("span", { class: "ico" }, "📥"), el("span", { class: "t" }, "Importer une sauvegarde", el("small", {}, "Remplace le journal de ce téléphone"))),
-    el("p", { class: "petit-texte" }, "Ton journal reste uniquement sur ce téléphone (aucun compte, aucun serveur). Pense à l'exporter de temps en temps. Scintillement : « Distant Star Sparkle », Soundza (soundza.com)."),
+    el("button", { class: "reglage", onclick: () => { fermerFeuille(); setTimeout(() => window.Sauvegarde?.ouvrir(), 250); } }, el("span", { class: "ico" }, "☁️"), el("span", { class: "t" }, "Sauvegarde GitHub", el("small", {}, "Copie automatique dans ton dépôt privé"))),
+    el("p", { class: "petit-texte" }, "Ton journal reste sur ce téléphone. Il n'est envoyé que dans ton propre dépôt GitHub privé, si tu actives la sauvegarde GitHub. Scintillement : « Distant Star Sparkle », Soundza (soundza.com)."),
   );
 }
 $("ouvrir-reglages").addEventListener("click", ouvrirReglages);
