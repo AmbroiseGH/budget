@@ -182,7 +182,7 @@ function majArticle(e, a) {
 function creerSeparateur() {
   return el("div", { class: "separateur", "data-id": "sep" },
     el("span"),
-    el("button", { onclick: viderPanier }, "Vider le panier"));
+    el("button", { onclick: () => viderPanier() }, "Vider le panier"));
 }
 
 function rendre() {
@@ -245,6 +245,9 @@ function majEntete(reste, faits) {
     setTimeout(() => confettis($("arc").closest(".anneau")), 250);
   }
   dejaFini = fini;
+  $("terminer").hidden = !fini;
+  const vider = elements.get("sep")?.querySelector("button");
+  if (vider) vider.hidden = fini;
 }
 
 function ajouter(texte, { emoji, source } = {}) {
@@ -309,7 +312,7 @@ async function supprimer(id) {
   toast(`${a.nom} supprimé`, { couleur: "var(--rouge)", icone: "✕", action: "Annuler", surAction: () => { donnees.articles.push(a); sauver(); rendre(); } });
 }
 
-async function viderPanier() {
+async function viderPanier(termine = false) {
   const faits = donnees.articles.filter((a) => a.fait);
   if (!faits.length) return;
   const sep = elements.get("sep");
@@ -319,7 +322,8 @@ async function viderPanier() {
   for (const a of faits) { elements.get(a.id)?.remove(); elements.delete(a.id); }
   sep?.remove(); elements.delete("sep");
   rendre();
-  toast(`Panier vidé · ${faits.length} article${faits.length > 1 ? "s" : ""}`, { action: "Annuler", surAction: () => { donnees.articles.push(...faits); sauver(); rendre(); } });
+  const n = `${faits.length} article${faits.length > 1 ? "s" : ""}`;
+  toast(termine ? `Courses terminées · ${n}` : `Panier vidé · ${n}`, { action: "Annuler", surAction: () => { donnees.articles.push(...faits); sauver(); rendre(); } });
 }
 
 function basculerRecurrent(nom, emoji, bouton) {
@@ -417,32 +421,77 @@ brancherSaisie($("form-ajout"), $("saisie"), $("apercu-emoji"), $("btn-ajout"), 
    Récurrents (dock du bas)
    ========================================================= */
 
+// Un récurrent disparaît du dock tant qu'il est dans la liste du jour,
+// et revient quand l'article en sort (panier vidé, courses terminées, suppression).
+const chips = new Map(); // id → bouton
 let recPremier = true;
+function creerChip(r) {
+  const b = el("button", { class: "rec", "data-id": r.id },
+    el("span", { class: "e" }), el("span", { class: "n" }), el("span", { class: "p", "aria-hidden": "true", html: SVG_PLUS }));
+  b.addEventListener("click", () => {
+    const rr = donnees.recurrents.find((x) => x.id === r.id);
+    if (!rr || trouverArticle(rr.nom)) return;
+    rejouer(b, "tape");
+    ajouter({ nom: rr.nom, qte: 1 }, { emoji: rr.emoji, source: b.querySelector(".e") });
+  });
+  return b;
+}
 function rendreRecurrents() {
   const zone = $("recurrents");
-  const cle = donnees.recurrents.map((r) => r.id + r.emoji).join();
-  if (zone.dataset.cle !== cle) {
-    zone.dataset.cle = cle;
-    zone.replaceChildren(...donnees.recurrents.map((r, i) => {
-      const b = el("button", { class: "rec", "data-id": r.id, style: recPremier ? `animation-delay:${0.25 + i * 0.04}s` : "animation:none" },
-        el("span", { class: "e" }, r.emoji), el("span", { class: "n" }, r.nom), el("span", { class: "p", "aria-hidden": "true", html: SVG_PLUS }));
-      b.addEventListener("click", () => {
-        rejouer(b, "tape");
-        ajouter({ nom: r.nom, qte: 1 }, { emoji: r.emoji, source: b.querySelector(".e") });
-      });
-      return b;
-    }));
-    if (!donnees.recurrents.length) zone.append(el("p", { class: "rec-vide" }, "Touche ☆ sur un article ou « Modifier » pour en ajouter."));
-    recPremier = false;
+  const visibles = donnees.recurrents.filter((r) => !trouverArticle(r.nom));
+  const garder = new Set(visibles.map((r) => r.id));
+  const avant = new Map();
+  for (const [id, b] of chips) avant.set(id, b.getBoundingClientRect());
+  const zr = zone.getBoundingClientRect();
+
+  // Ceux qui partent : ils rétrécissent sur place pendant que les autres se resserrent
+  for (const [id, b] of chips) {
+    if (garder.has(id)) continue;
+    chips.delete(id);
+    if (reduit || recPremier) { b.remove(); continue; }
+    const r = avant.get(id);
+    Object.assign(b.style, { position: "absolute", left: r.left - zr.left + zone.scrollLeft + "px", top: r.top - zr.top + zone.scrollTop + "px", width: r.width + "px", margin: 0, pointerEvents: "none" });
+    b.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(.4) translateY(-14px)" }], { duration: 300, easing: doux, fill: "forwards" })
+      .finished.then(() => b.remove());
   }
-  for (const b of zone.querySelectorAll(".rec")) {
-    const r = donnees.recurrents.find((x) => x.id === b.dataset.id);
-    const a = r && trouverArticle(r.nom);
-    const dans = !!(a && !a.fait);
-    b.classList.toggle("dans", dans);
-    b.setAttribute("aria-label", `Ajouter ${r.nom} à la liste${dans ? ` (déjà ${a.qte})` : ""}`);
+
+  const nouveaux = new Set();
+  visibles.forEach((r, i) => {
+    let b = chips.get(r.id);
+    if (!b) {
+      b = creerChip(r); chips.set(r.id, b); nouveaux.add(r.id);
+      b.style.animation = recPremier ? "" : "none";
+      if (recPremier) b.style.animationDelay = 0.25 + i * 0.04 + "s";
+    }
+    b.querySelector(".e").textContent = r.emoji;
+    b.querySelector(".n").textContent = r.nom;
+    b.setAttribute("aria-label", `Ajouter ${r.nom} à la liste`);
+    const ici = zone.querySelectorAll(".rec:not([style*='absolute'])")[i];
+    if (ici !== b) zone.insertBefore(b, ici || zone.querySelector(".rec-vide"));
+  });
+
+  let msg = zone.querySelector(".rec-vide");
+  const texte = !donnees.recurrents.length ? "Touche ☆ sur un article ou « Modifier » pour en ajouter."
+    : !visibles.length ? "Tous tes récurrents sont dans la liste ✓" : "";
+  if (texte) { if (!msg) zone.append(msg = el("p", { class: "rec-vide" })); msg.textContent = texte; }
+  else msg?.remove();
+
+  if (!reduit && !recPremier) {
+    for (const [id, b] of chips) {
+      if (nouveaux.has(id)) {
+        b.animate([{ opacity: 0, transform: "translateY(12px) scale(.6)" }, { opacity: 1, transform: "none" }], { duration: 480, delay: 60 * [...nouveaux].indexOf(id), easing: ressort, fill: "backwards" });
+      } else {
+        const a = avant.get(id), n = b.getBoundingClientRect();
+        const dx = a.left - n.left, dy = a.top - n.top;
+        if (Math.abs(dx) + Math.abs(dy) > 1) b.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 420, easing: doux });
+      }
+    }
   }
+  recPremier = false;
 }
+
+// Laisse de la place sous la liste pour le dock, quelle que soit sa hauteur
+new ResizeObserver(([e]) => document.documentElement.style.setProperty("--dock", e.target.offsetHeight + "px")).observe(document.querySelector(".dock"));
 
 /* =========================================================
    Feuille « Modifier les récurrents »
@@ -571,6 +620,7 @@ function fermerFeuille() {
 }
 $("feuille").addEventListener("click", (e) => { if (e.target.hasAttribute("data-fermer")) fermerFeuille(); });
 $("gerer").addEventListener("click", ouvrirGestion);
+$("terminer").addEventListener("click", () => viderPanier(true));
 
 /* =========================================================
    Démarrage
