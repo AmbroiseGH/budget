@@ -283,6 +283,18 @@ button:active:not(:disabled) { transform: scale(.965); }
 .bouton-retrait { min-height: 50px; border-radius: 16px; font-weight: 800; color: #fff; background: var(--c); }
 .ligne .valeur.retire { color: var(--doux); }
 
+/* Modifier l'épargne */
+.bouton-modif { margin: 4px auto 6px; padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); display: block; }
+@media (prefers-color-scheme: dark) { .bouton-modif { color: #b3a9ff; } }
+.secondaire.large { width: 100%; }
+.lignes-epargne .pastille { width: 38px; height: 38px; font-size: 17px; }
+.choix-compte { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.opt-compte {
+  display: flex; align-items: center; gap: 8px; padding: 12px; border-radius: 16px; font-size: 14px; font-weight: 700;
+  color: var(--texte); background: var(--surface-2); border: 2px solid transparent; text-align: left;
+}
+.opt-compte.choisi { border-color: var(--c); background: color-mix(in srgb, var(--c) 12%, var(--surface)); }
+
 /* Curseur d'épargne */
 .curseur-tete { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .pct-grand { font-size: 44px; font-weight: 800; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; transition: color .2s; }

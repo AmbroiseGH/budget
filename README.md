@@ -19,6 +19,7 @@ L'icône « Budget » apparaît sur ton écran d'accueil. L'app s'ouvre en plein
 - **Graphiques** : la répartition des dépenses du mois par catégorie, et les revenus/dépenses des 6 derniers mois.
 - **Épargne** : indique tes rentrées prévues du mois et règle la part à épargner avec le curseur (0 à 100 %) : Petit de 1 à 9 %, Moyen de 10 à 29 %, Grand de 30 à 49 %, Énorme à partir de 50 %. L'app te dit combien mettre de côté et combien il te reste à dépenser.
 
+- **Corriger l'épargne** : dans Épargne, « Modifier l'épargne du mois » permet de changer le montant ou le compte d'un placement ou d'un retrait, de le supprimer, ou d'ajouter une épargne oubliée. Les soldes des comptes suivent.
 - **Historique** (bouton sur l'accueil) : le bilan de chaque mois, la tranche d'épargne atteinte et ta série 🔥 de mois où tu as épargné plus que tu n'as dépensé.
 
 ## Tes données

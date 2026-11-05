@@ -125,8 +125,10 @@ const duMois = (mois) => donnees.mouvements.filter((m) => memeMois(m.date, mois)
 const somme = (liste) => liste.reduce((s, m) => s + m.montant, 0);
 // Un retrait d'un livret n'est ni un revenu ni une dépense : il réduit seulement l'épargne.
 const revenus = (liste) => somme(liste.filter((m) => m.estRevenu));
-const depenses = (liste) => somme(liste.filter((m) => !m.estRevenu && !m.retrait));
-const places = (liste) => somme(liste.filter((m) => m.estRevenu && m.compte));
+// Un virement vers un compte (épargne oubliée) n'est pas non plus une dépense.
+const estDepense = (m) => !m.estRevenu && !m.retrait && !m.virement;
+const depenses = (liste) => somme(liste.filter(estDepense));
+const places = (liste) => somme(liste.filter((m) => (m.estRevenu && m.compte) || m.virement));
 const retraits = (liste) => somme(liste.filter((m) => m.retrait));
 const epargneNette = (liste) => places(liste) - retraits(liste);
 const tries = () => [...donnees.mouvements].sort((a, b) => b.date.localeCompare(a.date));
@@ -312,15 +314,15 @@ $("btn-revenu").addEventListener("click", () => {
 $("btn-depense").addEventListener("click", () => enregistrer(false));
 
 function ligneMouvement(m) {
-  if (m.retrait) {
+  if (m.retrait || m.virement) {
     const c = CPT[m.compte] || { nom: "compte", c: "#94a3b8", ico: "🏦" };
-    const titre = m.libelle || `Retrait ${c.nom}`;
+    const titre = m.libelle || (m.retrait ? `Retrait ${c.nom}` : `Virement vers ${c.nom}`);
     return el("li", { class: "ligne", onclick: () => supprimer(m, titre) },
-      el("span", { class: "pastille", style: `--c:${c.c}` }, "↩️"),
+      el("span", { class: "pastille", style: `--c:${c.c}` }, m.retrait ? "↩️" : c.ico),
       el("div", { class: "infos" },
         el("div", { class: "titre" }, titre),
-        el("div", { class: "meta" }, dateCourte(m.date), el("span", { class: "badge", style: `--c:${c.c}` }, `← ${c.nom}`))),
-      el("span", { class: "valeur retire" }, "−" + euros(m.montant)));
+        el("div", { class: "meta" }, dateCourte(m.date), el("span", { class: "badge", style: `--c:${c.c}` }, m.retrait ? `← ${c.nom}` : `→ ${c.nom}`))),
+      el("span", { class: "valeur retire" }, (m.retrait ? "−" : "") + euros(m.montant)));
   }
   const cat = m.categorie ? CAT[m.categorie] : null;
   const compte = m.compte ? CPT[m.compte] : null;
@@ -656,7 +658,7 @@ function afficherDiagrammes() {
     (m) => { moisDiagrammes = m; afficherDiagrammes(); });
 
   const parCat = new Map();
-  for (const m of duMois(moisDiagrammes).filter((m) => !m.estRevenu && !m.retrait)) {
+  for (const m of duMois(moisDiagrammes).filter(estDepense)) {
     const k = m.categorie && CAT[m.categorie] ? m.categorie : "Autre";
     parCat.set(k, (parCat.get(k) || 0) + m.montant);
   }
@@ -795,6 +797,7 @@ function afficherEpargne(rechargerChamp = true) {
   const res = $("resultat");
   if (!plan.revenus) {
     res.innerHTML = '<div class="vide"><div class="vide-ico">🎯</div>Indique tes rentrées d\'argent prévues pour savoir combien mettre de côté ce mois-ci.</div>';
+    res.append(boutonModifEpargne());
     return;
   }
   const epargne = epargneNette(l);
@@ -830,11 +833,154 @@ function afficherEpargne(rechargerChamp = true) {
     <div class="ligne-res"><span>Reste à dépenser</span><span style="font-weight:800;${reste < 0 ? "color:var(--depense)" : ""}">${euros(reste)}</span></div>
     <div class="jauge"><div style="width:${partDepense * 100}%;background:${reste < 0 ? "var(--depense)" : `linear-gradient(90deg, ${t.c}99, ${t.c})`}"></div></div>
     ${reste < 0 ? `<p class="alerte">Attention : tu dépasses ton budget de ${euros(-reste)}.</p>` : ""}`;
+  res.querySelector(".anneau").after(boutonModifEpargne());
   requestAnimationFrame(() => requestAnimationFrame(() => {
     const arc = $("arc-epargne");
     if (arc) arc.setAttribute("stroke-dashoffset", String(C * (1 - progres)));
   }));
 }
+
+/* =========================================================
+   Modifier l'épargne du mois (corriger une erreur)
+   ========================================================= */
+
+const estMouvementEpargne = (m) => (m.estRevenu && m.compte) || m.virement || m.retrait;
+const effetSurCompte = (m) => (m.retrait ? -m.montant : m.montant); // effet du mouvement sur le solde du compte
+
+// Choix du compte sous forme de boutons.
+function choixCompte(selection, surChoix, avecCourant = false) {
+  const options = [...(avecCourant ? [{ id: null, nom: "Compte courant", ico: "💳", c: "#10b981" }] : []), ...COMPTES];
+  return el("div", { class: "choix-compte" }, options.map((c) => el("button", {
+    type: "button",
+    class: "opt-compte" + (selection === c.id ? " choisi" : ""),
+    style: `--c:${c.c}`,
+    onclick: () => surChoix(c.id),
+  }, el("span", {}, c.ico), c.nom)));
+}
+
+let editionEpargne = null; // null = liste, "nouveau" = virement à ajouter, sinon id du mouvement
+
+function ouvrirModifEpargne() {
+  editionEpargne = null;
+  ouvrirFeuille(construireModifEpargne);
+}
+
+function construireModifEpargne() {
+  if (editionEpargne === "nouveau") return formulaireVirement();
+  if (editionEpargne) {
+    const m = donnees.mouvements.find((x) => x.id === editionEpargne);
+    if (m) return formulaireEpargne(m);
+    editionEpargne = null;
+  }
+  const l = duMois(moisEpargne);
+  const liste = l.filter(estMouvementEpargne).sort((a, b) => b.date.localeCompare(a.date));
+  return [
+    el("h3", {}, "Épargne de " + moisEpargne.toLocaleDateString("fr-FR", { month: "long" })),
+    el("p", { class: "sous" }, `Épargné : ${eurosSigne(epargneNette(l))}. Touche une ligne pour corriger son montant ou son compte.`),
+    liste.length
+      ? el("div", { class: "lignes-epargne" }, liste.map((m) => {
+        const c = CPT[m.compte] || { nom: "?", c: "#94a3b8", ico: "🏦" };
+        const titre = m.libelle || (m.retrait ? `Retrait ${c.nom}` : m.virement ? `Virement vers ${c.nom}` : "Revenu placé");
+        return el("button", { class: "ligne-pea", onclick: () => { editionEpargne = m.id; rafraichirFeuille(); } },
+          el("span", { class: "pastille", style: `--c:${c.c}` }, m.retrait ? "↩️" : c.ico),
+          el("div", { class: "infos" }, el("b", {}, titre), el("span", {}, `${dateCourte(m.date)} · ${m.retrait ? "depuis" : "vers"} ${c.nom}`)),
+          el("div", { class: "droite" }, el("b", { class: m.retrait ? "neg" : "pos" }, (m.retrait ? "−" : "+") + euros(m.montant)), el("span", {}, "Modifier ›")));
+      }))
+      : el("div", { class: "vide" }, el("div", { class: "vide-ico" }, "🫙"), "Aucune épargne enregistrée ce mois-ci."),
+    el("div", { style: "height:8px" }),
+    el("button", { class: "secondaire large", onclick: () => { editionEpargne = "nouveau"; rafraichirFeuille(); } }, "＋ Ajouter une épargne oubliée"),
+    el("div", { style: "height:10px" }),
+    el("button", { class: "principal", onclick: () => fermerFeuille() }, "Terminé"),
+  ];
+}
+
+// Applique une modification en gardant les soldes des comptes justes.
+function remplacerMouvement(m, nouveau) {
+  if (m.compte) crediter(m.compte, -effetSurCompte(m));
+  Object.assign(m, nouveau);
+  if (m.compte) crediter(m.compte, effetSurCompte(m));
+  sauver();
+  toutAfficher();
+}
+
+function formulaireEpargne(m) {
+  let compte = m.compte;
+  const montant = champNombre({ valeur: m.montant });
+  const zoneCompte = el("div");
+  const dessinerComptes = () => zoneCompte.replaceChildren(
+    choixCompte(compte, (id) => { compte = id; dessinerComptes(); }, m.estRevenu));
+  dessinerComptes();
+
+  const titre = m.retrait ? "Corriger un retrait" : m.virement ? "Corriger une épargne" : "Corriger un revenu placé";
+  const valider = () => {
+    const v = lireMontant(montant.value);
+    if (!v) { toast("Indique un montant", "var(--depense)"); return; }
+    if (m.retrait) {
+      const dispo = (compte === "pea" ? donnees.comptes.pea.especes : donnees.comptes[compte].solde) + (compte === m.compte ? m.montant : 0);
+      if (v > dispo + 0.001) { toast(`Il n'y a que ${euros(dispo)} sur ce compte`, "var(--depense)"); return; }
+    }
+    remplacerMouvement(m, { montant: v, compte });
+    editionEpargne = null;
+    rafraichirFeuille();
+    toast("Épargne corrigée", "var(--accent)");
+  };
+  const supprimerCeMouvement = () => {
+    const quoi = m.estRevenu ? "ce revenu (il disparaît aussi de tes revenus)" : m.retrait ? "ce retrait" : "cette épargne";
+    if (!confirm(`Supprimer ${quoi} de ${euros(m.montant)} ?`)) return;
+    if (m.compte) crediter(m.compte, -effetSurCompte(m));
+    donnees.mouvements = donnees.mouvements.filter((x) => x.id !== m.id);
+    sauver(); toutAfficher();
+    editionEpargne = null; rafraichirFeuille();
+    toast("Supprimé", "var(--depense)");
+  };
+
+  return [
+    el("h3", {}, titre),
+    el("p", { class: "sous" }, `Enregistré le ${dateCourte(m.date)}. Le solde des comptes est corrigé automatiquement.`),
+    el("div", { class: "form" },
+      el("label", {}, "Montant (€)", montant),
+      el("label", {}, m.retrait ? "Retiré de" : "Placé sur", zoneCompte),
+      m.estRevenu ? el("p", { class: "aide", style: "margin:0" }, "Choisis « Compte courant » si ce revenu n'aurait pas dû compter comme épargne.") : null,
+      el("button", { class: "principal", onclick: valider }, "Enregistrer"),
+      el("button", { class: "secondaire", onclick: () => { editionEpargne = null; rafraichirFeuille(); } }, "Retour"),
+      el("button", { class: "danger", onclick: supprimerCeMouvement }, "Supprimer")),
+  ];
+}
+
+// Épargne oubliée : de l'argent mis sur un compte sans nouveau revenu (virement depuis le compte courant).
+function formulaireVirement() {
+  let compte = "livretA";
+  const montant = champNombre({ valeur: 0 });
+  const zoneCompte = el("div");
+  const dessinerComptes = () => zoneCompte.replaceChildren(choixCompte(compte, (id) => { compte = id; dessinerComptes(); }));
+  dessinerComptes();
+  const valider = () => {
+    const v = lireMontant(montant.value);
+    if (!v) { toast("Indique un montant", "var(--depense)"); return; }
+    // Dans le mois affiché : aujourd'hui pour le mois en cours, sinon le dernier jour du mois.
+    const maintenant = new Date();
+    const date = cleMois(moisEpargne) === cleMois(maintenant) ? maintenant : new Date(moisEpargne.getFullYear(), moisEpargne.getMonth() + 1, 0, 12);
+    donnees.mouvements.push({
+      id: nouvelId(), montant: v, estRevenu: false, virement: true, compte,
+      libelle: "", categorie: null, date: date.toISOString(),
+    });
+    crediter(compte, v);
+    sauver(); toutAfficher();
+    editionEpargne = null; rafraichirFeuille();
+    toast(`${euros(v)} ajoutés sur ${CPT[compte].nom}`, CPT[compte].c);
+  };
+  return [
+    el("h3", {}, "Ajouter une épargne oubliée"),
+    el("p", { class: "sous" }, "Pour de l'argent mis de côté ce mois-ci depuis ton compte courant. Il ne compte pas comme un nouveau revenu."),
+    el("div", { class: "form" },
+      el("label", {}, "Montant (€)", montant),
+      el("label", {}, "Placé sur", zoneCompte),
+      el("button", { class: "principal", onclick: valider }, "Ajouter"),
+      el("button", { class: "secondaire", onclick: () => { editionEpargne = null; rafraichirFeuille(); } }, "Retour")),
+  ];
+}
+
+const boutonModifEpargne = () => el("button", { class: "bouton-modif", onclick: ouvrirModifEpargne }, "✏️ Modifier l'épargne du mois");
 
 /* =========================================================
    Historique des mois (bilans et série)
@@ -942,7 +1088,7 @@ function afficherBilans() {
 function detailBilan(b) {
   const t = b.tranche;
   const parCat = new Map();
-  for (const m of b.l.filter((m) => !m.estRevenu && !m.retrait)) {
+  for (const m of b.l.filter(estDepense)) {
     const k = m.categorie && CAT[m.categorie] ? m.categorie : "Autre";
     parCat.set(k, (parCat.get(k) || 0) + m.montant);
   }
