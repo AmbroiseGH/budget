@@ -137,7 +137,7 @@ function toast(texte, { couleur = "var(--accent)", icone = "✓", action, surAct
   t.replaceChildren(
     el("span", { class: "ok", style: `background:${couleur}` }, icone),
     el("span", { class: "txt" }, texte),
-    action ? el("button", { onclick: () => { t.classList.remove("visible"); surAction(); } }, action) : null,
+    action ? el("button", { onclick: () => { t.classList.remove("visible"); surAction(); } }, action) : "",
   );
   t.classList.add("visible");
   clearTimeout(minuteurToast);

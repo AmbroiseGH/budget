@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Habitudes</title>
+  <meta name="description" content="Suivi d'habitudes avec séries et calendrier.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Habitudes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#f8f4f1" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#110b08" media="(prefers-color-scheme: dark)">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="fonts/jakarta-800.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="halo" aria-hidden="true"></div>
+
+  <main>
+    <header class="tete">
+      <p id="date" class="sur-titre"></p>
+      <h1>Mes habitudes</h1>
+    </header>
+
+    <!-- Le jour (aujourd'hui ou un jour passé) -->
+    <section class="encart" aria-labelledby="titre-jour">
+      <div class="encart-tete">
+        <div class="nav-jour">
+          <button id="jour-prec" class="rond" aria-label="Jour précédent"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button id="titre-jour" class="titre-jour"></button>
+          <button id="jour-suiv" class="rond" aria-label="Jour suivant"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <div class="encart-ligne">
+          <div>
+            <p class="etiquette">Score du jour</p>
+            <p class="score"><span id="score">0</span><small>%</small></p>
+            <p id="compteur" class="compteur"></p>
+          </div>
+          <div class="anneau" aria-hidden="true">
+            <svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" class="fond-anneau"/><circle id="arc" cx="22" cy="22" r="18" class="arc-anneau"/></svg>
+            <span id="flamme">🔥</span>
+          </div>
+        </div>
+        <div class="jauge"><i id="jauge"></i></div>
+      </div>
+
+      <div class="encart-corps">
+        <div id="liste" class="liste" role="list"></div>
+        <div id="vide" class="vide" hidden>
+          <div class="vide-ico">🌱</div>
+          <b>Aucune habitude</b>
+          <span>Touche « Modifier » pour en ajouter.</span>
+        </div>
+        <button id="gerer" class="modifier">Ajouter ou retirer des habitudes</button>
+      </div>
+    </section>
+    <p class="aide centre">Touche une habitude pour la cocher.<br>Le chiffre 🔥 est ta série : le nombre de jours d'affilée.</p>
+
+    <!-- Calendrier -->
+    <section class="carte" aria-labelledby="titre-cal">
+      <div class="carte-tete">
+        <h2 id="titre-cal">Calendrier</h2>
+        <div class="nav-mois">
+          <button id="mois-prec" class="rond petit" aria-label="Mois précédent"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <span id="titre-mois"></span>
+          <button id="mois-suiv" class="rond petit" aria-label="Mois suivant"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+      </div>
+      <div id="filtres" class="filtres" role="tablist" aria-label="Habitude affichée"></div>
+      <div class="semaine" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+      <div id="grille" class="grille"></div>
+      <div class="legende" aria-hidden="true">Moins<i></i><i class="n1"></i><i class="n2"></i><i class="n3"></i><i class="n4"></i>Plus</div>
+      <div id="bilan-mois" class="bilan-mois"></div>
+    </section>
+
+    <!-- Séries -->
+    <section class="carte" aria-labelledby="titre-series">
+      <div class="carte-tete"><h2 id="titre-series">Séries</h2><span class="doux-petit">en cours · record</span></div>
+      <div id="series" class="series"></div>
+    </section>
+  </main>
+
+  <!-- Feuille du bas -->
+  <div id="feuille" class="feuille" hidden>
+    <div class="voile" data-fermer></div>
+    <div id="feuille-panneau" class="panneau" role="dialog" aria-modal="true"></div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <input id="fichier" type="file" accept="application/json,.json" hidden>
+
+  <script src="app.js"></script>
+</body>
+</html>
