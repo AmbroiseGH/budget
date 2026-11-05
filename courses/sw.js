@@ -20,7 +20,8 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   e.respondWith(
-    fetch(e.request)
+    // no-cache : on revérifie toujours auprès du serveur, pour recevoir les mises à jour tout de suite.
+    fetch(e.request.url, { cache: "no-cache" })
       .then((rep) => {
         const copie = rep.clone();
         caches.open(VERSION).then((c) => c.put(e.request, copie));
