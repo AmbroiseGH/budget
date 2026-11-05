@@ -1183,5 +1183,19 @@ toutAfficher();
 document.addEventListener("visibilitychange", () => { if (!document.hidden) toutAfficher(); });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
+      // À chaque retour dans l'app, on cherche une nouvelle version.
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) reg.update().catch(() => {}); });
+    }).catch(() => {});
+  });
+  // Nouvelle version installée : on recharge une fois pour l'afficher.
+  // (pas au tout premier lancement, où il n'y avait encore aucune version installée).
+  const avaitVersion = !!navigator.serviceWorker.controller;
+  let rechargee = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (rechargee || !avaitVersion) return;
+    rechargee = true;
+    location.reload();
+  });
 }

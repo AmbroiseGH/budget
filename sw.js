@@ -19,8 +19,15 @@ self.addEventListener("activate", (e) => {
 // Réseau d'abord (pour recevoir les mises à jour), cache si hors ligne.
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+  // Ne s'occupe que des fichiers de l'app Budget (pas des autres apps du même site, comme /courses/).
+  const url = new URL(e.request.url);
+  const racine = new URL(self.registration.scope);
+  if (url.origin !== racine.origin) return;
+  const chemin = url.pathname.slice(racine.pathname.length);
+  if (chemin.includes("/") && !chemin.startsWith("icons/") && !chemin.startsWith("fonts/")) return;
   e.respondWith(
-    fetch(e.request)
+    // no-cache : on revérifie toujours auprès du serveur, pour recevoir les mises à jour tout de suite.
+    fetch(e.request.url, { cache: "no-cache" })
       .then((rep) => {
         const copie = rep.clone();
         caches.open(VERSION).then((c) => c.put(e.request, copie));
