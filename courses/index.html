@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Courses</title>
+  <meta name="description" content="Liste de courses simple, avec objets récurrents à ajouter d'un geste.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Courses">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#f2f6f4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#08100d" media="(prefers-color-scheme: dark)">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="fonts/jakarta-800.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="halo" aria-hidden="true"></div>
+
+  <main>
+    <header class="tete">
+      <p id="date" class="sur-titre"></p>
+      <h1>Ma liste</h1>
+    </header>
+
+    <section class="encart" aria-labelledby="titre-courses">
+      <div class="encart-tete">
+        <div class="encart-ligne">
+          <div>
+            <h2 id="titre-courses">Courses</h2>
+            <p id="compteur" class="compteur"></p>
+          </div>
+          <div class="anneau" aria-hidden="true">
+            <svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" class="fond-anneau"/><circle id="arc" cx="22" cy="22" r="18" class="arc-anneau"/></svg>
+            <span id="pct">0%</span>
+          </div>
+        </div>
+        <div class="jauge"><i id="jauge"></i></div>
+      </div>
+
+      <div class="encart-corps">
+        <form id="form-ajout" class="ajout" autocomplete="off">
+          <span id="apercu-emoji" class="apercu" aria-hidden="true">🛒</span>
+          <input id="saisie" type="text" placeholder="Ajouter un article…" enterkeyhint="done" aria-label="Nouvel article">
+          <button id="btn-ajout" class="btn-plus" type="submit" aria-label="Ajouter" disabled>
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </form>
+        <div id="liste" class="liste" role="list"></div>
+        <div id="vide" class="vide">
+          <div class="vide-ico">🧺</div>
+          <b>Ta liste est vide</b>
+          <span>Écris un article ci-dessus ou touche <i><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></i> sur un récurrent en bas.</span>
+        </div>
+      </div>
+    </section>
+    <p id="astuce" class="aide centre">Touche un article pour le mettre dans le panier.<br>Glisse-le vers la gauche pour le supprimer.</p>
+  </main>
+
+  <!-- Encart des récurrents, toujours à portée de pouce -->
+  <aside class="dock" aria-labelledby="titre-rec">
+    <div class="dock-tete">
+      <h2 id="titre-rec"><span class="eclair">↻</span>Récurrents</h2>
+      <button id="gerer" class="lien">Modifier</button>
+    </div>
+    <div id="recurrents" class="recurrents"></div>
+  </aside>
+
+  <!-- Feuille du bas -->
+  <div id="feuille" class="feuille" hidden>
+    <div class="voile" data-fermer></div>
+    <div id="feuille-panneau" class="panneau" role="dialog" aria-modal="true"></div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
