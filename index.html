@@ -23,10 +23,18 @@
   <main>
     <!-- ACCUEIL -->
     <section id="accueil" class="onglet actif">
-      <header class="tete">
-        <p id="salut" class="sur-titre"></p>
-        <h1 id="titre-accueil"></h1>
+      <header class="tete tete-flex">
+        <div>
+          <p id="salut" class="sur-titre"></p>
+          <h1 id="titre-accueil"></h1>
+        </div>
+        <button id="ouvrir-bilans" class="bouton-historique" aria-label="Historique des mois">
+          <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.9 3.9L8.8 12H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>
+          Historique
+        </button>
       </header>
+
+      <button id="bandeau-bilan" class="bandeau-bilan" hidden></button>
 
       <div class="hero">
         <p class="hero-label">Solde du mois</p>
@@ -69,6 +77,7 @@
       <div class="hero hero-comptes">
         <p class="hero-label">Épargne totale</p>
         <p id="total-epargne" class="hero-montant">0 €</p>
+        <p id="epargne-mois-comptes" class="hero-sous"></p>
         <div id="barre-repartition" class="barre-repartition"></div>
         <div id="legende-comptes" class="legende-comptes"></div>
       </div>
@@ -111,8 +120,14 @@
         <button id="utiliser-recus" class="lien" hidden></button>
       </div>
       <div class="carte">
-        <h2>Niveau d'épargne</h2>
-        <div id="niveaux" class="niveaux"></div>
+        <h2>Part à épargner</h2>
+        <div class="curseur-tete">
+          <span id="pct-affiche" class="pct-grand">15 %</span>
+          <span id="badge-tranche" class="badge-tranche"></span>
+        </div>
+        <input id="curseur" class="curseur" type="range" min="0" max="100" step="1" value="15" aria-label="Pourcentage des rentrées à épargner">
+        <p id="montant-curseur" class="aide"></p>
+        <div id="zones" class="zones"></div>
       </div>
       <div id="resultat" class="carte resultat"></div>
     </section>
@@ -138,6 +153,16 @@
         <input id="fichier-import" type="file" accept="application/json,.json" hidden>
       </div>
     </div>
+  </section>
+
+  <!-- HISTORIQUE DES MOIS (bilans) -->
+  <section id="bilans" class="page" hidden>
+    <div class="barre-page">
+      <button id="fermer-bilans" class="lien">‹ Retour</button>
+      <strong id="titre-bilans">Historique</strong>
+      <span></span>
+    </div>
+    <div id="bilans-contenu" class="contenu-page"></div>
   </section>
 
   <!-- FEUILLE DU BAS (choix du compte, édition des comptes) -->

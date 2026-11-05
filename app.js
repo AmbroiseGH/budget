@@ -18,13 +18,22 @@ const CATEGORIES = [
 ];
 const CAT = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
 
-const NIVEAUX = [
-  { id: "enorme", nom: "Énorme", taux: 0.40, ico: "🔥", c: "#8b5cf6" },
-  { id: "grand", nom: "Grand", taux: 0.25, ico: "⭐", c: "#3b82f6" },
-  { id: "moyen", nom: "Moyen", taux: 0.15, ico: "🌿", c: "#10b981" },
-  { id: "petit", nom: "Petit", taux: 0.05, ico: "💧", c: "#f59e0b" },
+// Tranches d'épargne (en % des rentrées) : 1–9 petit, 10–29 moyen, 30–49 grand, 50+ énorme.
+const TRANCHES = [
+  { id: "aucune", nom: "Aucune", min: 0, max: 0, ico: "⚪", c: "#94a3b8", preset: 0 },
+  { id: "petit", nom: "Petit", min: 1, max: 9, ico: "💧", c: "#f59e0b", preset: 5 },
+  { id: "moyen", nom: "Moyen", min: 10, max: 29, ico: "🌿", c: "#10b981", preset: 15 },
+  { id: "grand", nom: "Grand", min: 30, max: 49, ico: "⭐", c: "#3b82f6", preset: 35 },
+  { id: "enorme", nom: "Énorme", min: 50, max: 100, ico: "🔥", c: "#8b5cf6", preset: 50 },
 ];
-const NIV = Object.fromEntries(NIVEAUX.map((n) => [n.id, n]));
+function tranche(pct) {
+  const p = Math.round(pct);
+  let t = TRANCHES[0];
+  for (const x of TRANCHES) if (p >= x.min) t = x;
+  return t;
+}
+// Anciens niveaux fixes, convertis en pourcentage pour garder les réglages déjà faits.
+const ANCIENS_TAUX = { petit: 5, moyen: 15, grand: 25, enorme: 40 };
 
 // Plafonds réglementaires (versements pour le PEA).
 const COMPTES = [
@@ -50,7 +59,11 @@ function normaliser(d) {
   const c = d.comptes || {};
   return {
     mouvements: Array.isArray(d.mouvements) ? d.mouvements : [],
-    plans: d.plans || {},
+    plans: Object.fromEntries(Object.entries(d.plans || {}).map(([k, p]) => [k, {
+      revenus: Number(p && p.revenus) || 0,
+      pct: Number.isFinite(p && p.pct) ? p.pct : (ANCIENS_TAUX[p && p.niveau] ?? 15),
+    }])),
+    bilanVu: d.bilanVu || null,
     comptes: {
       livretA: { solde: Number(c.livretA && c.livretA.solde) || 0 },
       livretJeune: { solde: Number(c.livretJeune && c.livretJeune.solde) || 0 },
@@ -110,9 +123,12 @@ const dateCourte = (iso) => new Date(iso).toLocaleString("fr-FR", { day: "numeri
 
 const duMois = (mois) => donnees.mouvements.filter((m) => memeMois(m.date, mois));
 const somme = (liste) => liste.reduce((s, m) => s + m.montant, 0);
+// Un retrait d'un livret n'est ni un revenu ni une dépense : il réduit seulement l'épargne.
 const revenus = (liste) => somme(liste.filter((m) => m.estRevenu));
-const depenses = (liste) => somme(liste.filter((m) => !m.estRevenu));
+const depenses = (liste) => somme(liste.filter((m) => !m.estRevenu && !m.retrait));
 const places = (liste) => somme(liste.filter((m) => m.estRevenu && m.compte));
+const retraits = (liste) => somme(liste.filter((m) => m.retrait));
+const epargneNette = (liste) => places(liste) - retraits(liste);
 const tries = () => [...donnees.mouvements].sort((a, b) => b.date.localeCompare(a.date));
 const nouvelId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
@@ -296,6 +312,16 @@ $("btn-revenu").addEventListener("click", () => {
 $("btn-depense").addEventListener("click", () => enregistrer(false));
 
 function ligneMouvement(m) {
+  if (m.retrait) {
+    const c = CPT[m.compte] || { nom: "compte", c: "#94a3b8", ico: "🏦" };
+    const titre = m.libelle || `Retrait ${c.nom}`;
+    return el("li", { class: "ligne", onclick: () => supprimer(m, titre) },
+      el("span", { class: "pastille", style: `--c:${c.c}` }, "↩️"),
+      el("div", { class: "infos" },
+        el("div", { class: "titre" }, titre),
+        el("div", { class: "meta" }, dateCourte(m.date), el("span", { class: "badge", style: `--c:${c.c}` }, `← ${c.nom}`))),
+      el("span", { class: "valeur retire" }, "−" + euros(m.montant)));
+  }
   const cat = m.categorie ? CAT[m.categorie] : null;
   const compte = m.compte ? CPT[m.compte] : null;
   const couleur = cat ? cat.c : m.estRevenu ? "#10b981" : "#94a3b8";
@@ -311,10 +337,12 @@ function ligneMouvement(m) {
 
 function supprimer(m, titre) {
   const compte = m.compte ? CPT[m.compte] : null;
-  const detail = compte ? `\nLe montant sera aussi retiré de ton ${compte.nom}.` : "";
+  const detail = !compte ? "" : m.retrait
+    ? `\nLe montant sera remis sur ton ${compte.nom}.`
+    : `\nLe montant sera aussi retiré de ton ${compte.nom}.`;
   if (!confirm(`Supprimer « ${titre} » (${euros(m.montant)}) ?${detail}`)) return;
   donnees.mouvements = donnees.mouvements.filter((x) => x.id !== m.id);
-  if (compte) crediter(compte.id, -m.montant);
+  if (compte) crediter(compte.id, m.retrait ? m.montant : -m.montant);
   sauver();
   toutAfficher();
   toast("Mouvement supprimé", "var(--depense)");
@@ -346,6 +374,9 @@ function afficherComptes() {
   const valeurs = COMPTES.map((c) => ({ c, v: valeurCompte(c.id) }));
   const total = valeurs.reduce((s, x) => s + x.v, 0);
   compter($("total-epargne"), total);
+  const ceMois = duMois(new Date());
+  const net = epargneNette(ceMois), sorti = retraits(ceMois);
+  $("epargne-mois-comptes").textContent = `Épargné ce mois-ci : ${eurosSigne(net)}${sorti ? ` (dont ${euros(sorti)} retirés)` : ""}`;
 
   $("barre-repartition").replaceChildren(...(total > 0
     ? valeurs.filter((x) => x.v > 0).map((x) => el("i", { style: `flex-grow:${x.v};background:${x.c.clair}` }))
@@ -394,16 +425,42 @@ function ouvrirLivret(id) {
   const c = CPT[id];
   ouvrirFeuille(() => {
     const liste = placementsVers(id);
+    const solde = donnees.comptes[id].solde;
+    const montantRetrait = champNombre({ valeur: 0 });
+    const motif = el("input", { class: "champ", type: "text", placeholder: "Motif (facultatif)", autocomplete: "off", enterkeyhint: "done" });
+    const retirer = () => {
+      const v = lireMontant(montantRetrait.value);
+      if (!v) { toast("Indique le montant à retirer", "var(--depense)"); return; }
+      if (v > donnees.comptes[id].solde + 0.001) { toast(`Il n'y a que ${euros(donnees.comptes[id].solde)} sur ce compte`, "var(--depense)"); return; }
+      donnees.mouvements.push({
+        id: nouvelId(), montant: v, estRevenu: false, retrait: true, compte: id,
+        libelle: motif.value.trim(), categorie: null, date: new Date().toISOString(),
+      });
+      crediter(id, -v);
+      sauver();
+      toutAfficher();
+      rafraichirFeuille();
+      toast(`${euros(v)} retirés du ${c.nom}`, c.c);
+    };
     return [
       el("h3", {}, `${c.ico} ${c.nom}`),
-      el("p", { class: "sous" }, `Plafond de ${eurosRond(c.plafond)}.`),
+      el("p", { class: "sous" }, `${euros(solde)} sur le compte · plafond de ${eurosRond(c.plafond)}.`),
+      el("div", { class: "carte-retrait", style: `--c:${c.c}` },
+        el("b", {}, "↩️ Retirer de l'argent"),
+        el("p", { class: "aide" }, "Le montant baisse sur ce compte et dans ton épargne du mois."),
+        el("div", { class: "form" },
+          el("label", {}, "Montant à retirer (€)", montantRetrait),
+          motif,
+          el("button", { class: "bouton-retrait", onclick: retirer }, "Retirer"))),
+      el("div", { class: "section-titre" }, "Corriger le solde"),
       el("div", { class: "form" },
         el("label", {}, "Montant actuel sur le compte (€)",
-          champNombre({ valeur: donnees.comptes[id].solde, surSaisie: (v) => { donnees.comptes[id].solde = v; sauver(); afficherComptes(); } }))),
-      liste.length ? el("div", { class: "section-titre" }, "Derniers revenus placés") : null,
+          champNombre({ valeur: solde, surSaisie: (v) => { donnees.comptes[id].solde = v; sauver(); afficherComptes(); } }))),
+      el("p", { class: "aide" }, "Une correction ici ne compte pas dans ton épargne du mois. Pour sortir de l'argent, utilise « Retirer »."),
+      liste.length ? el("div", { class: "section-titre" }, "Derniers mouvements du compte") : null,
       liste.length ? el("ul", { class: "liste" }, liste.map(ligneMouvement)) : null,
       el("div", { style: "height:16px" }),
-      el("button", { class: "principal", onclick: () => { fermerFeuille(); toast(`${c.nom} mis à jour`, c.c); } }, "Terminé"),
+      el("button", { class: "principal", onclick: () => fermerFeuille() }, "Terminé"),
     ];
   });
 }
@@ -599,7 +656,7 @@ function afficherDiagrammes() {
     (m) => { moisDiagrammes = m; afficherDiagrammes(); });
 
   const parCat = new Map();
-  for (const m of duMois(moisDiagrammes).filter((m) => !m.estRevenu)) {
+  for (const m of duMois(moisDiagrammes).filter((m) => !m.estRevenu && !m.retrait)) {
     const k = m.categorie && CAT[m.categorie] ? m.categorie : "Autre";
     parCat.set(k, (parCat.get(k) || 0) + m.montant);
   }
@@ -664,15 +721,17 @@ function afficherDiagrammes() {
 
 let moisEpargne = debutMois(new Date());
 const champRevenus = $("revenus-prevus");
+const curseur = $("curseur");
 
-// Sans réglage pour ce mois, on reprend ceux du dernier mois configuré.
-function planAffiche() {
-  const cle = cleMois(moisEpargne);
+// Sans réglage pour un mois, on reprend ceux du dernier mois configuré avant lui.
+function planPour(mois) {
+  const cle = cleMois(mois);
   if (donnees.plans[cle]) return donnees.plans[cle];
   const precedents = Object.keys(donnees.plans).filter((k) => k < cle).sort();
   const p = precedents.length ? donnees.plans[precedents[precedents.length - 1]] : null;
-  return { revenus: p ? p.revenus : 0, niveau: p ? p.niveau : "moyen" };
+  return { revenus: p ? p.revenus : 0, pct: p ? p.pct : 15 };
 }
+const planAffiche = () => planPour(moisEpargne);
 function modifierPlan(changement) {
   donnees.plans[cleMois(moisEpargne)] = { ...planAffiche(), ...changement };
   sauver();
@@ -688,14 +747,39 @@ $("utiliser-recus").addEventListener("click", () => {
   modifierPlan({ revenus: revenus(duMois(moisEpargne)) });
   afficherEpargne(true);
 });
+curseur.addEventListener("input", () => {
+  modifierPlan({ pct: Number(curseur.value) });
+  afficherEpargne(false);
+});
+
+// Piste du curseur : les zones colorées, plus vives jusqu'à la valeur choisie.
+const FOND_ZONES = "linear-gradient(90deg, #94a3b8 0 1%, #f59e0b 1% 10%, #10b981 10% 30%, #3b82f6 30% 50%, #8b5cf6 50% 100%)";
+
+function afficherCurseur(pct) {
+  const t = tranche(pct);
+  curseur.value = String(pct);
+  curseur.style.setProperty("--p", `${pct}%`);
+  curseur.style.setProperty("--c", t.c);
+  $("pct-affiche").textContent = `${pct} %`;
+  $("pct-affiche").style.color = t.c;
+  const badge = $("badge-tranche");
+  badge.textContent = `${t.ico} ${t.nom}`;
+  badge.style.setProperty("--c", t.c);
+  $("zones").replaceChildren(...TRANCHES.slice(1).map((z) => el("button", {
+    class: "zone" + (z.id === t.id ? " active" : ""),
+    style: `--c:${z.c}`,
+    onclick: () => { modifierPlan({ pct: z.preset }); afficherEpargne(false); },
+  }, el("b", {}, z.nom), el("small", {}, z.id === "enorme" ? "50 % et +" : `${z.min} – ${z.max} %`))));
+}
 
 function afficherEpargne(rechargerChamp = true) {
   selecteurMois(document.querySelector('[data-mois="epargne"]'), () => moisEpargne,
     (m) => { moisEpargne = m; afficherEpargne(true); });
 
   const plan = planAffiche();
-  const niveau = NIV[plan.niveau] || NIV.moyen;
+  const t = tranche(plan.pct);
   if (rechargerChamp) { champRevenus.value = texteSaisie(plan.revenus); ajusterLargeur(champRevenus); }
+  afficherCurseur(plan.pct);
 
   const l = duMois(moisEpargne);
   const recus = revenus(l);
@@ -703,53 +787,234 @@ function afficherEpargne(rechargerChamp = true) {
   bouton.hidden = !(recus > 0 && recus !== plan.revenus);
   bouton.textContent = `Utiliser mes revenus enregistrés (${euros(recus)})`;
 
-  $("niveaux").replaceChildren(...NIVEAUX.map((n) => el("button", {
-    class: "niveau" + (n.id === niveau.id ? " choisi" : ""),
-    style: `--c:${n.c}`,
-    "aria-pressed": String(n.id === niveau.id),
-    onclick: () => { modifierPlan({ niveau: n.id }); afficherEpargne(false); },
-  }, el("span", { class: "ico" }, n.ico), el("b", {}, n.nom), el("span", {}, `${fmtPct.format(n.taux)} des rentrées`))));
+  const aEpargner = Math.round(plan.revenus * plan.pct / 100);
+  $("montant-curseur").textContent = plan.revenus
+    ? `soit ${eurosRond(aEpargner)} à mettre de côté sur ${eurosRond(plan.revenus)}`
+    : "Indique tes rentrées prévues pour voir le montant.";
 
   const res = $("resultat");
   if (!plan.revenus) {
     res.innerHTML = '<div class="vide"><div class="vide-ico">🎯</div>Indique tes rentrées d\'argent prévues pour savoir combien mettre de côté ce mois-ci.</div>';
     return;
   }
-  const aEpargner = Math.round(plan.revenus * niveau.taux);
-  const dejaPlace = places(l);
+  const epargne = epargneNette(l);
+  const sorti = retraits(l);
   const budget = plan.revenus - aEpargner;
   const depense = depenses(l);
   const reste = budget - depense;
   const partDepense = budget > 0 ? Math.min(1, depense / budget) : 1;
-  const progres = aEpargner > 0 ? Math.min(1, dejaPlace / aEpargner) : 0;
+  const progres = aEpargner > 0 ? Math.max(0, Math.min(1, epargne / aEpargner)) : 0;
   const R = 80, C = 2 * Math.PI * R;
 
   res.innerHTML = `
     <div class="anneau">
       <svg viewBox="0 0 200 200">
-        <defs><linearGradient id="gA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${niveau.c}" stop-opacity=".55"/><stop offset="1" stop-color="${niveau.c}"/></linearGradient></defs>
+        <defs><linearGradient id="gA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${t.c}" stop-opacity=".55"/><stop offset="1" stop-color="${t.c}"/></linearGradient></defs>
         <circle r="${R}" cx="100" cy="100" fill="none" stroke="var(--surface-2)" stroke-width="16"/>
         <circle id="arc-epargne" r="${R}" cx="100" cy="100" fill="none" stroke="url(#gA)" stroke-width="16" stroke-linecap="round"
           stroke-dasharray="${C}" stroke-dashoffset="${C}"/>
       </svg>
-      <div class="centre-anneau"><small>À mettre de côté</small><div class="grand">${eurosRond(aEpargner)}</div>
-        <small>${niveau.ico} ${niveau.nom} · ${fmtPct.format(niveau.taux)}</small></div>
+      <div class="centre-anneau"><small>Épargné / objectif</small><div class="grand">${eurosRond(epargne)}</div>
+        <small>sur ${eurosRond(aEpargner)} · ${fmtPct.format(progres)}</small></div>
     </div>
-    <p class="aide">${dejaPlace > 0
-      ? `Déjà placé ce mois-ci : <b style="color:var(--texte)">${euros(dejaPlace)}</b> (${fmtPct.format(progres)})`
-      : "Place tes revenus sur un livret ou ton PEA pour remplir l'anneau."}</p>
+    <p class="aide">${epargne > 0 || sorti > 0
+      ? `Placé ce mois-ci : <b style="color:var(--texte)">${euros(places(l))}</b>${sorti ? ` · retiré : <b style="color:var(--texte)">${euros(sorti)}</b>` : ""}`
+      : "Place tes revenus sur un livret ou ton PEA pour remplir l'anneau."}
+      ${progres >= 1 ? "<br>🎉 Objectif atteint !" : ""}</p>
     <hr>
     <div class="ligne-res"><span>Rentrées prévues</span><span>${euros(plan.revenus)}</span></div>
+    <div class="ligne-res"><span>Objectif d'épargne (${t.ico} ${t.nom}, ${plan.pct} %)</span><span>${euros(aEpargner)}</span></div>
+    <div class="ligne-res"><span>Reste à épargner</span><span>${euros(Math.max(0, aEpargner - epargne))}</span></div>
     <div class="ligne-res"><span>Budget pour tes dépenses</span><span>${euros(budget)}</span></div>
     <div class="ligne-res"><span>Déjà dépensé</span><span>${euros(depense)}</span></div>
     <div class="ligne-res"><span>Reste à dépenser</span><span style="font-weight:800;${reste < 0 ? "color:var(--depense)" : ""}">${euros(reste)}</span></div>
-    <div class="jauge"><div style="width:${partDepense * 100}%;background:${reste < 0 ? "var(--depense)" : `linear-gradient(90deg, ${niveau.c}99, ${niveau.c})`}"></div></div>
+    <div class="jauge"><div style="width:${partDepense * 100}%;background:${reste < 0 ? "var(--depense)" : `linear-gradient(90deg, ${t.c}99, ${t.c})`}"></div></div>
     ${reste < 0 ? `<p class="alerte">Attention : tu dépasses ton budget de ${euros(-reste)}.</p>` : ""}`;
   requestAnimationFrame(() => requestAnimationFrame(() => {
     const arc = $("arc-epargne");
     if (arc) arc.setAttribute("stroke-dashoffset", String(C * (1 - progres)));
   }));
 }
+
+/* =========================================================
+   Historique des mois (bilans et série)
+   ========================================================= */
+
+function bilanMois(mois) {
+  const l = duMois(mois);
+  const r = revenus(l), d = depenses(l), ep = epargneNette(l);
+  const pctReel = r > 0 ? (Math.max(0, ep) / r) * 100 : 0;
+  const plan = planPour(mois);
+  const objectif = plan.revenus ? Math.round(plan.revenus * plan.pct / 100) : 0;
+  return {
+    mois, l, r, d, ep, pctReel, plan, objectif,
+    tranche: tranche(pctReel),
+    // Mois réussi : on a épargné plus qu'on n'a dépensé.
+    reussi: ep > 0 && ep > d,
+    enCours: cleMois(mois) === cleMois(new Date()),
+  };
+}
+
+function premierMois() {
+  if (!donnees.mouvements.length) return debutMois(new Date());
+  const plusAncien = donnees.mouvements.reduce((a, m) => (m.date < a ? m.date : a), donnees.mouvements[0].date);
+  return debutMois(new Date(plusAncien));
+}
+
+function moisConnus() {
+  const liste = [];
+  const debut = premierMois();
+  for (let m = debutMois(new Date()); m >= debut; m = ajouterMois(m, -1)) liste.push(m);
+  return liste;
+}
+
+function series() {
+  const mois = moisConnus().slice(1); // mois terminés, du plus récent au plus ancien
+  let actuelle = 0;
+  for (const m of mois) { if (bilanMois(m).reussi) actuelle++; else break; }
+  let record = 0, cours = 0;
+  for (const m of [...mois].reverse()) { cours = bilanMois(m).reussi ? cours + 1 : 0; record = Math.max(record, cours); }
+  return { actuelle, record };
+}
+
+let bilanOuvert = null; // null = liste, sinon clé du mois affiché
+
+function ouvrirBilans(cle = null) {
+  bilanOuvert = cle;
+  $("bilans").hidden = false;
+  $("bilans").scrollTop = 0;
+  if (cle) { donnees.bilanVu = cle; sauver(); afficherBandeauBilan(); }
+  afficherBilans();
+}
+$("ouvrir-bilans").addEventListener("click", () => ouvrirBilans());
+$("fermer-bilans").addEventListener("click", () => {
+  if (bilanOuvert) { bilanOuvert = null; afficherBilans(); $("bilans").scrollTop = 0; }
+  else $("bilans").hidden = true;
+});
+
+function badgeTranche(b) {
+  const t = b.tranche;
+  return el("span", { class: "badge-tranche petit-badge", style: `--c:${t.c}` }, `${t.ico} ${t.nom} · ${Math.round(b.pctReel)} %`);
+}
+
+function afficherBilans() {
+  const contenu = $("bilans-contenu");
+  $("titre-bilans").textContent = bilanOuvert ? "Bilan du mois" : "Historique";
+  $("fermer-bilans").textContent = bilanOuvert ? "‹ Historique" : "‹ Retour";
+  if (bilanOuvert) {
+    const [a, mo] = bilanOuvert.split("-").map(Number);
+    contenu.replaceChildren(...detailBilan(bilanMois(new Date(a, mo - 1, 1))).filter((x) => x != null));
+    return;
+  }
+
+  const { actuelle, record } = series();
+  const courant = bilanMois(debutMois(new Date()));
+  const cartes = moisConnus().map((m) => {
+    const b = bilanMois(m);
+    return el("button", { class: "fiche-mois" + (b.reussi ? " reussi" : ""), onclick: () => ouvrirBilans(cleMois(m)) },
+      el("div", { class: "fiche-haut" },
+        el("b", {}, nomMois(m)),
+        b.enCours ? el("span", { class: "etiquette" }, "En cours") : b.reussi ? el("span", { class: "flamme" }, "🔥") : null),
+      el("div", { class: "fiche-chiffres" },
+        el("span", {}, el("small", {}, "Épargné"), el("strong", { class: b.ep > 0 ? "pos" : "" }, eurosSigne(b.ep))),
+        el("span", {}, el("small", {}, "Dépensé"), el("strong", {}, euros(b.d))),
+        el("span", { class: "chev" }, "›")),
+      badgeTranche(b));
+  });
+
+  contenu.replaceChildren(
+    el("div", { class: "carte-serie" + (actuelle ? " active" : "") },
+      el("div", { class: "serie-flamme" }, actuelle ? "🔥" : "🌱"),
+      el("div", {},
+        el("small", {}, "Série en cours"),
+        el("div", { class: "serie-nombre" }, `${actuelle} mois`),
+        el("p", {}, actuelle
+          ? `${actuelle > 1 ? `${actuelle} mois de suite` : "Le mois dernier"} tu as épargné plus que tu n'as dépensé.`
+          : "Épargne plus que tu ne dépenses sur un mois pour lancer ta série."),
+        record > actuelle ? el("p", { class: "record" }, `Record : ${record} mois`) : null)),
+    el("p", { class: "aide" }, courant.reussi
+      ? `${nomMois(courant.mois)} : en bonne voie, tu as épargné ${euros(courant.ep)} pour ${euros(courant.d)} dépensés.`
+      : `${nomMois(courant.mois)} : pour prolonger ta série, épargne plus que tes dépenses (${euros(courant.d)} pour l'instant).`),
+    el("div", { class: "groupe-titre" }, "Tous les mois"),
+    el("div", { class: "fiches" }, cartes));
+}
+
+function detailBilan(b) {
+  const t = b.tranche;
+  const parCat = new Map();
+  for (const m of b.l.filter((m) => !m.estRevenu && !m.retrait)) {
+    const k = m.categorie && CAT[m.categorie] ? m.categorie : "Autre";
+    parCat.set(k, (parCat.get(k) || 0) + m.montant);
+  }
+  const top = [...parCat.entries()].sort((x, y) => y[1] - x[1]).slice(0, 3);
+  const atteint = b.objectif > 0 ? Math.max(0, b.ep) / b.objectif : 0;
+
+  return [
+    el("h1", { class: "titre-bilan" }, nomMois(b.mois)),
+    b.enCours ? el("p", { class: "aide" }, "Mois en cours : ce bilan se complète au fil des jours.") : null,
+    el("div", { class: "verdict" + (b.reussi ? " reussi" : "") },
+      el("span", { class: "verdict-ico" }, b.reussi ? "🔥" : b.ep > 0 ? "🙂" : "💤"),
+      el("div", {},
+        el("b", {}, b.reussi ? "Mois réussi" : b.ep > 0 ? "Bien, mais pas de série" : "Pas d'épargne ce mois-ci"),
+        el("p", {}, b.reussi
+          ? `Tu as épargné ${euros(b.ep)}, plus que tes ${euros(b.d)} de dépenses.`
+          : b.ep > 0
+            ? `Tu as épargné ${euros(b.ep)}, mais dépensé ${euros(b.d)}.`
+            : "Aucun revenu placé sur tes comptes ce mois-là."))),
+    el("div", { class: "tuiles" },
+      el("div", { class: "tuile" }, el("small", {}, "Revenus"), el("strong", { class: "pos" }, euros(b.r))),
+      el("div", { class: "tuile" }, el("small", {}, "Dépenses"), el("strong", { class: "neg" }, euros(b.d))),
+      el("div", { class: "tuile" }, el("small", {}, "Épargné"), el("strong", {}, eurosSigne(b.ep))),
+      el("div", { class: "tuile" }, el("small", {}, "Solde"), el("strong", {}, eurosSigne(b.r - b.d)))),
+    el("div", { class: "carte" },
+      el("h2", {}, "Tranche d'épargne du mois"),
+      el("div", { class: "tranche-ligne" },
+        el("span", { class: "tranche-ico", style: `--c:${t.c}` }, t.ico),
+        el("div", {},
+          el("b", { style: `color:${t.c}` }, t.nom),
+          el("p", { class: "aide", style: "margin:2px 0 0" }, b.r > 0
+            ? `Tu as épargné ${fmtPct.format(b.pctReel / 100)} de tes revenus.`
+            : "Aucun revenu enregistré ce mois-là."))),
+      el("div", { class: "regle" },
+        el("div", { class: "regle-piste", style: `background:${FOND_ZONES}` }),
+        el("i", { class: "regle-repere", style: `left:${Math.min(100, b.pctReel)}%` })),
+      el("div", { class: "regle-legende" }, [[0, "0"], [10, "10"], [30, "30"], [50, "50"], [100, "100 %"]].map(([p, t]) => el("span", { style: `left:${p}%` }, t)))),
+    b.objectif > 0 ? el("div", { class: "carte" },
+      el("h2", {}, "Objectif"),
+      el("div", { class: "ligne-res" }, el("span", {}, `Visé (${tranche(b.plan.pct).nom}, ${b.plan.pct} %)`), el("span", {}, euros(b.objectif))),
+      el("div", { class: "ligne-res" }, el("span", {}, "Réalisé"), el("span", {}, `${euros(Math.max(0, b.ep))} · ${fmtPct.format(atteint)}`)),
+      el("div", { class: "jauge" }, el("div", { style: `width:${Math.min(1, atteint) * 100}%;background:${atteint >= 1 ? "var(--revenu)" : t.c}` })),
+      atteint >= 1 ? el("p", { class: "aide" }, "🎉 Objectif atteint !") : null) : null,
+    top.length ? el("div", { class: "carte" },
+      el("h2", {}, "Plus grosses dépenses"),
+      el("ul", { class: "legende" }, top.map(([id, v]) => el("li", { style: `--c:${CAT[id].c}` },
+        el("span", { class: "emo" }, CAT[id].ico),
+        el("span", { class: "nom" }, id),
+        el("span", { class: "barre-pct" }, el("i", { style: `width:${(v / b.d) * 100}%` })),
+        el("span", { class: "val" }, eurosRond(v)))))) : null,
+    el("p", { class: "aide centre" }, `${b.l.length} mouvement${b.l.length > 1 ? "s" : ""} enregistré${b.l.length > 1 ? "s" : ""}`),
+  ];
+}
+
+// Au début d'un mois, l'accueil propose le bilan du mois écoulé.
+function afficherBandeauBilan() {
+  const precedent = ajouterMois(debutMois(new Date()), -1);
+  const cle = cleMois(precedent);
+  const b = bilanMois(precedent);
+  const bandeau = $("bandeau-bilan");
+  const montrer = b.l.length > 0 && donnees.bilanVu !== cle;
+  bandeau.hidden = !montrer;
+  if (montrer) {
+    bandeau.replaceChildren(
+      el("span", { class: "bandeau-ico" }, b.reussi ? "🔥" : "📊"),
+      el("span", { class: "bandeau-txt" },
+        el("b", {}, `Ton bilan de ${precedent.toLocaleDateString("fr-FR", { month: "long" })} est prêt`),
+        el("small", {}, `${t0(b)}`)),
+      el("span", { class: "fl" }, "›"));
+    bandeau.onclick = () => ouvrirBilans(cle);
+  }
+}
+const t0 = (b) => `${b.tranche.ico} Tranche ${b.tranche.nom} · épargné ${eurosSigne(b.ep)}`;
 
 /* =========================================================
    Démarrage
@@ -760,7 +1025,9 @@ function toutAfficher() {
   afficherComptes();
   afficherDiagrammes();
   afficherEpargne(document.activeElement !== champRevenus);
+  afficherBandeauBilan();
   if (!$("historique").hidden) afficherHistorique();
+  if (!$("bilans").hidden) afficherBilans();
 }
 
 afficherChips();
