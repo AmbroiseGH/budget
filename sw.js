@@ -1,5 +1,5 @@
 // Garde l'app disponible hors ligne. Changer VERSION à chaque mise à jour des fichiers.
-const VERSION = "budget-v4";
+const VERSION = "budget-v5";
 const FICHIERS = ["./", "index.html", "style.css", "app.js", "manifest.webmanifest",
   "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "fonts/jakarta-400.woff2", "fonts/jakarta-500.woff2", "fonts/jakarta-600.woff2", "fonts/jakarta-700.woff2", "fonts/jakarta-800.woff2"];
@@ -19,8 +19,15 @@ self.addEventListener("activate", (e) => {
 // Réseau d'abord (pour recevoir les mises à jour), cache si hors ligne.
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+  // Ne s'occupe que des fichiers de l'app Budget (pas des autres apps du même site, comme /courses/).
+  const url = new URL(e.request.url);
+  const racine = new URL(self.registration.scope);
+  if (url.origin !== racine.origin) return;
+  const chemin = url.pathname.slice(racine.pathname.length);
+  if (chemin.includes("/") && !chemin.startsWith("icons/") && !chemin.startsWith("fonts/")) return;
   e.respondWith(
-    fetch(e.request)
+    // no-cache : on revérifie toujours auprès du serveur, pour recevoir les mises à jour tout de suite.
+    fetch(e.request.url, { cache: "no-cache" })
       .then((rep) => {
         const copie = rep.clone();
         caches.open(VERSION).then((c) => c.put(e.request, copie));
