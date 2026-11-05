@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Journal</title>
+  <meta name="description" content="Journal d'humeur : note ta journée, de la lune de sang au soleil radieux.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Journal">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta id="couleur-theme" name="theme-color" content="#1c1f55">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="fonts/instrument-italique.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/jakarta-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="sur-jour">
+  <!-- Le ciel, qui change avec l'humeur -->
+  <div id="ciel" class="ciel" aria-hidden="true">
+    <div class="ciel-degrade"></div>
+    <div id="etoiles" class="etoiles"></div>
+    <div id="poussiere" class="poussiere"></div>
+  </div>
+  <div class="voile-page" aria-hidden="true"></div>
+  <div class="bande-statut" aria-hidden="true"></div>
+
+  <main>
+    <!-- AUJOURD'HUI -->
+    <section id="aujourdhui" class="onglet actif" aria-labelledby="question">
+      <header class="tete-jour">
+        <div class="nav-jour">
+          <button id="jour-prec" class="rond" aria-label="Jour précédent"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <p id="date-jour" class="date-jour"></p>
+          <button id="jour-suiv" class="rond" aria-label="Jour suivant"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <h1 id="question">Comment était ta journée ?</h1>
+        <button id="retour-auj" class="puce-retour" hidden>Revenir à aujourd'hui</button>
+      </header>
+
+      <div class="scene">
+        <div id="astres" class="astres"></div>
+      </div>
+
+      <div class="libelle">
+        <p id="nom-humeur" class="nom-humeur">Neutre</p>
+        <p id="nom-astre" class="nom-astre">Aube</p>
+      </div>
+
+      <div class="zone-curseur verre-ciel">
+        <div id="curseur" class="curseur" role="slider" tabindex="0" aria-label="Humeur de la journée"
+             aria-valuemin="0" aria-valuemax="8" aria-valuenow="4" aria-valuetext="Neutre">
+          <div class="piste"><div id="crans" class="crans"></div></div>
+          <div id="pouce" class="pouce"></div>
+        </div>
+        <div class="bornes" aria-hidden="true"><span>Insupportable</span><span>Incroyable</span></div>
+      </div>
+
+      <div class="actions">
+        <button id="enregistrer" class="bouton-ciel">Enregistrer ma journée</button>
+        <div id="apres" class="apres" hidden></div>
+        <p id="soutien" class="soutien" hidden>Les nuits de lune de sang finissent toujours par passer. Si tout semble trop lourd, en parler aide : le <a href="tel:3114">3114</a> répond jour et nuit, gratuitement.</p>
+      </div>
+    </section>
+
+    <!-- JOURNAL -->
+    <section id="journal" class="onglet" aria-labelledby="titre-journal">
+      <header class="tete tete-flex">
+        <div>
+          <p class="sur-titre">Tes journées</p>
+          <h1 id="titre-journal">Journal</h1>
+        </div>
+        <button id="ouvrir-reglages" class="rond-page" aria-label="Réglages et sauvegarde">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.8 7.8 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.6 7.6 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.8 7.8 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4 1 2-3.4z"/></svg>
+        </button>
+      </header>
+
+      <section class="carte calendrier" aria-labelledby="titre-mois">
+        <div class="carte-tete">
+          <button id="mois-prec" class="rond-page petit" aria-label="Mois précédent"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <h2 id="titre-mois"></h2>
+          <button id="mois-suiv" class="rond-page petit" aria-label="Mois suivant"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <div class="semaine" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+        <div id="grille" class="grille"></div>
+        <p id="resume-mois" class="resume-mois"></p>
+      </section>
+
+      <h2 class="titre-section">Notes du mois</h2>
+      <div id="entrees" class="entrees"></div>
+      <p class="aide centre">Touche un jour pour le noter ou relire ta note. Un point signale un mot écrit.</p>
+    </section>
+
+    <!-- BILAN -->
+    <section id="bilan" class="onglet" aria-labelledby="titre-bilan">
+      <header class="tete">
+        <p class="sur-titre">Ton humeur au fil du temps</p>
+        <h1 id="titre-bilan">Bilan</h1>
+      </header>
+
+      <div class="tuiles">
+        <article id="tuile-mois" class="tuile"></article>
+        <article id="tuile-annee" class="tuile"></article>
+      </div>
+
+      <div class="filtres" role="group" aria-label="Période des graphiques">
+        <button data-periode="30" class="actif" aria-pressed="true">30 jours</button>
+        <button data-periode="90" aria-pressed="false">3 mois</button>
+        <button data-periode="365" aria-pressed="false">12 mois</button>
+      </div>
+
+      <section class="carte" aria-labelledby="titre-courbe">
+        <div class="carte-tete gauche">
+          <h2 id="titre-courbe">Ta courbe</h2>
+          <p id="sous-courbe" class="sous-carte"></p>
+        </div>
+        <div id="courbe" class="graphique"></div>
+      </section>
+
+      <section class="carte" aria-labelledby="titre-repartition">
+        <div class="carte-tete gauche">
+          <h2 id="titre-repartition">Répartition</h2>
+          <p id="sous-repartition" class="sous-carte"></p>
+        </div>
+        <div id="repartition" class="graphique"></div>
+      </section>
+
+      <section class="carte" aria-labelledby="titre-semaine">
+        <div class="carte-tete gauche">
+          <h2 id="titre-semaine">Selon le jour de la semaine</h2>
+          <p id="sous-semaine" class="sous-carte"></p>
+        </div>
+        <div id="semaine" class="graphique"></div>
+      </section>
+
+      <div id="series" class="series"></div>
+    </section>
+  </main>
+
+  <!-- Barre d'onglets -->
+  <nav class="tabbar" role="tablist" aria-label="Sections">
+    <button role="tab" data-onglet="aujourdhui" class="actif" aria-selected="true">
+      <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>Aujourd'hui
+    </button>
+    <button role="tab" data-onglet="journal" aria-selected="false">
+      <svg viewBox="0 0 24 24"><path d="M7 3h10a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zm1 5v2h8V8zm0 4v2h8v-2zm0 4v2h5v-2z"/></svg>Journal
+    </button>
+    <button role="tab" data-onglet="bilan" aria-selected="false">
+      <svg viewBox="0 0 24 24"><path d="M3 17.5l5.2-6 4 3.6L21 5.5v4l-8.6 9-4-3.6L3 21z"/></svg>Bilan
+    </button>
+  </nav>
+
+  <!-- Page d'écriture de la note -->
+  <div id="page-note" class="page-note" hidden role="dialog" aria-modal="true" aria-labelledby="note-titre">
+    <div class="page-note-ciel" aria-hidden="true"></div>
+    <header class="barre-note">
+      <button id="note-annuler" class="lien-note">Annuler</button>
+      <div class="note-titre"><span id="note-medaillon"></span><b id="note-titre"></b></div>
+      <button id="note-ok" class="lien-note fort">OK</button>
+    </header>
+    <div class="corps-note">
+      <p id="note-invite" class="note-invite"></p>
+      <textarea id="texte-note" rows="8" placeholder="Ce qui s'est passé, ce que tu as ressenti…" aria-label="Ta note"></textarea>
+      <p class="note-aide">Facultatif · ta note reste sur ce téléphone.</p>
+    </div>
+  </div>
+
+  <!-- Feuille du bas -->
+  <div id="feuille" class="feuille" hidden>
+    <div class="voile" data-fermer></div>
+    <div id="feuille-panneau" class="panneau" role="dialog" aria-modal="true"></div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <input id="fichier" type="file" accept="application/json,.json" hidden>
+
+  <script src="astres.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
