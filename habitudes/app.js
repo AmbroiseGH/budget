@@ -383,10 +383,29 @@ function ouvrirGestion() {
     toast(`${nom} ajoutée`);
   } }, apercu, champ, bouton);
 
+  // Le nom se modifie directement : touche-le, écris, puis « OK »
+  const champNom = (h) => {
+    const c = el("input", { class: "nom-edit", type: "text", value: h.nom, maxlength: "40", enterkeyhint: "done", "aria-label": `Renommer ${h.nom}`, autocomplete: "off" });
+    const valider = () => {
+      const nom = majuscule(c.value.trim().replace(/\s+/g, " "));
+      if (nom === h.nom) { c.value = h.nom; return; }
+      if (!nom) { c.value = h.nom; return; }
+      if (donnees.habitudes.some((x) => x !== h && norm(x.nom) === norm(nom))) {
+        toast(`${nom} existe déjà`, { couleur: "var(--doux)", icone: "i" }); c.value = h.nom; return;
+      }
+      h.nom = nom; c.value = nom; c.setAttribute("aria-label", `Renommer ${nom}`);
+      sauver(); toutRendre();
+      toast("Nom modifié", { icone: "✎" });
+    };
+    c.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); c.blur(); } if (ev.key === "Escape") { c.value = h.nom; c.blur(); } });
+    c.addEventListener("blur", valider);
+    return c;
+  };
+
   const remplir = () => {
     gestion.replaceChildren(...donnees.habitudes.map((h, i) => el("div", { class: "ligne-gestion" },
       el("button", { class: "emoji", "aria-label": `Changer l'emoji de ${h.nom}`, onclick: () => ouvrirEmojis(h) }, h.emoji),
-      el("b", {}, h.nom),
+      champNom(h),
       el("button", { class: "petit-btn", "aria-label": `Monter ${h.nom}`, disabled: i === 0, html: SVG_HAUT, onclick: () => {
         donnees.habitudes.splice(i - 1, 0, donnees.habitudes.splice(i, 1)[0]);
         sauver(); toutRendre(); remplir();
@@ -405,7 +424,7 @@ function ouvrirGestion() {
 
   ouvrirFeuille(
     el("h3", {}, "Mes habitudes"),
-    el("p", { class: "sous" }, "Ajoute, retire ou remonte une habitude. Ton historique est gardé si tu la remets."),
+    el("p", { class: "sous" }, "Touche un nom pour le modifier. Ajoute, retire ou remonte une habitude : ton historique est gardé."),
     form, gestion,
     el("button", { class: "principal", onclick: fermerFeuille }, "Terminé"),
     el("p", { class: "titre-groupe" }, "Sauvegarde"),
