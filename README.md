@@ -4,6 +4,8 @@ Une app ultra simple pour suivre ses revenus, ses dépenses, ses livrets et son 
 
 **Ouvrir l'app : https://ambroisegh.github.io/budget/**
 
+Aussi dans ce dépôt : la liste de **[Courses](courses/)**, à ouvrir sur https://ambroisegh.github.io/budget/courses/
+
 ## L'installer sur l'iPhone
 
 1. Ouvre le lien ci-dessus dans **Safari**.
