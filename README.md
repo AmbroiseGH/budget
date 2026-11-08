@@ -17,7 +17,7 @@ L'icône « Budget » apparaît sur ton écran d'accueil. L'app s'ouvre en plein
 ## Ce qu'elle fait
 
 - **Accueil** : tape un montant, ajoute si tu veux un libellé et une catégorie, puis touche **Revenu** ou **Dépense**. Pour un revenu, l'app te demande s'il va sur le compte courant, le Livret A, le Livret Jeune ou le PEA, et crédite le compte choisi. Le résumé du mois et les derniers mouvements sont juste en dessous. Touche un mouvement pour le supprimer.
-- **Comptes** : ton Livret A, ton Livret Jeune et ton PEA, avec leur plafond. Sur un livret, « Retirer » sort de l'argent : le solde et l'épargne du mois baissent d'autant. Pour le PEA, tu ajoutes tes achats d'actions (nom, nombre d'actions, prix) et tu mets à jour le cours pour voir ta plus-value.
+- **Comptes** : ton Livret A, ton Livret Jeune et ton PEA, avec leur plafond, et la courbe de ton épargne totale au fil du temps (1 mois, 3 mois, 1 an ou tout). Sur un livret, « Retirer » sort de l'argent : le solde et l'épargne du mois baissent d'autant. Pour le PEA, tu ajoutes tes achats d'actions (nom, nombre d'actions, prix) et tu mets à jour le cours pour voir ta plus-value.
 - **Graphiques** : la répartition des dépenses du mois par catégorie, et les revenus/dépenses des 6 derniers mois.
 - **Épargne** : indique tes rentrées prévues du mois et règle la part à épargner avec le curseur (0 à 100 %) : Petit de 1 à 9 %, Moyen de 10 à 29 %, Grand de 30 à 49 %, Énorme à partir de 50 %. L'app te dit combien mettre de côté et combien il te reste à dépenser.
 

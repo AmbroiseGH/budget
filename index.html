@@ -81,6 +81,21 @@
         <div id="barre-repartition" class="barre-repartition"></div>
         <div id="legende-comptes" class="legende-comptes"></div>
       </div>
+      <div class="carte carte-courbe">
+        <div class="entete">
+          <h2>Évolution de ton épargne</h2>
+        </div>
+        <p id="courbe-total" class="courbe-total">0 €</p>
+        <p id="courbe-delta" class="delta"></p>
+        <div id="courbe-epargne" class="courbe-epargne"></div>
+        <div id="periodes-epargne" class="periodes" role="group" aria-label="Période">
+          <button data-periode="30" class="actif" aria-pressed="true">1 mois</button>
+          <button data-periode="90" aria-pressed="false">3 mois</button>
+          <button data-periode="365" aria-pressed="false">1 an</button>
+          <button data-periode="0" aria-pressed="false">Tout</button>
+        </div>
+        <p id="courbe-message" class="aide centre" style="margin-bottom:0"></p>
+      </div>
       <div id="liste-comptes" class="liste-comptes"></div>
       <p class="aide centre">Touche un compte pour modifier son montant.<br>Chaque revenu peut être placé sur l'un d'eux.</p>
     </section>

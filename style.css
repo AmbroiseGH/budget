@@ -458,3 +458,32 @@ button:active:not(:disabled) { transform: scale(.965); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Courbe de l'épargne */
+.carte-courbe h2 { margin-bottom: 6px; }
+.courbe-total { margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -0.035em; font-variant-numeric: tabular-nums; }
+.delta { display: inline-block; margin: 6px 0 4px; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.delta.monte { color: var(--revenu); background: color-mix(in srgb, var(--revenu) 13%, transparent); }
+.delta.baisse { color: var(--depense); background: color-mix(in srgb, var(--depense) 12%, transparent); }
+.delta.stable { color: var(--doux); background: var(--surface-2); }
+.courbe-epargne { position: relative; margin: 6px -4px 4px; }
+.courbe-epargne svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.courbe-epargne text { fill: var(--doux); font: 600 10px "Jakarta", system-ui, sans-serif; }
+.courbe-epargne .grille-c { stroke: var(--ligne); stroke-dasharray: 3 4; }
+.courbe-epargne .croix-c { stroke: var(--doux); stroke-width: 1; stroke-dasharray: 3 3; }
+.courbe-epargne .ligne-c { stroke-dasharray: 1; stroke-dashoffset: 1; animation: trace 1.2s cubic-bezier(.3,.7,.2,1) forwards; }
+.courbe-epargne .aire-c { animation: apparait 1s .3s ease-out both; }
+@keyframes trace { to { stroke-dashoffset: 0; } }
+@keyframes apparait { from { opacity: 0; } }
+.courbe-epargne .pouls { transform-box: fill-box; transform-origin: center; animation: pouls 2s ease-out infinite; }
+@keyframes pouls { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(3.2); opacity: 0; } }
+.bulle-c {
+  position: absolute; top: -6px; transform: translate(-50%, -100%); padding: 8px 12px; border-radius: 14px; text-align: center; white-space: nowrap;
+  background: var(--texte); color: var(--fond); box-shadow: 0 8px 20px #0003; opacity: 0; transition: opacity .15s; pointer-events: none;
+}
+.bulle-c.visible { opacity: 1; }
+.bulle-c b { display: block; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.bulle-c span { font-size: 11px; opacity: .8; }
+.periodes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface-2); margin-top: 6px; }
+.periodes button { min-height: 34px; border-radius: 10px; font-size: 13px; font-weight: 700; color: var(--doux); }
+.periodes button.actif { background: var(--surface); color: var(--texte); box-shadow: 0 1px 4px #0002; }

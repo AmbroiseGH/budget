@@ -64,6 +64,7 @@ function normaliser(d) {
       pct: Number.isFinite(p && p.pct) ? p.pct : (ANCIENS_TAUX[p && p.niveau] ?? 15),
     }])),
     bilanVu: d.bilanVu || null,
+    instantanes: d.instantanes && typeof d.instantanes === "object" ? d.instantanes : {},
     comptes: {
       livretA: { solde: Number(c.livretA && c.livretA.solde) || 0 },
       livretJeune: { solde: Number(c.livretJeune && c.livretJeune.solde) || 0 },
@@ -228,6 +229,7 @@ document.querySelectorAll(".tabbar button").forEach((b) =>
     document.querySelectorAll(".onglet").forEach((s) => s.classList.toggle("actif", s.id === b.dataset.onglet));
     window.scrollTo(0, 0);
     if (b.dataset.onglet === "diagrammes") afficherDiagrammes();
+    if (b.dataset.onglet === "comptes") rendreCourbeEpargne();
   }));
 
 function selecteurMois(conteneur, getMois, setMois) {
@@ -410,6 +412,8 @@ function afficherComptes() {
       el("div", { class: "solde" }, euros(v)),
       detail, jauge);
   }));
+  noterInstantane();
+  rendreCourbeEpargne();
 }
 
 function champNombre({ valeur, placeholder = "0", decimales = 2, surSaisie }) {
@@ -1161,6 +1165,175 @@ function afficherBandeauBilan() {
   }
 }
 const t0 = (b) => `${b.tranche.ico} Tranche ${b.tranche.nom} · épargné ${eurosSigne(b.ep)}`;
+
+/* =========================================================
+   Courbe de l'épargne au fil du temps
+   ========================================================= */
+
+const cleJour = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const jourDe = (k) => { const [a, m, j] = k.split("-").map(Number); return new Date(a, m - 1, j); };
+const ajouterJours = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const totalEpargne = () => COMPTES.reduce((s, c) => s + valeurCompte(c.id), 0);
+const fmtJourCourt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
+const fmtJourLong = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+const fmtMoisAxe = new Intl.DateTimeFormat("fr-FR", { month: "short" });
+const fmtCompact = new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 1 });
+
+// Une photo du total par jour : elle garde aussi les corrections de solde et la valeur du PEA.
+function noterInstantane() {
+  const k = cleJour(new Date()), v = arrondi(totalEpargne());
+  if (donnees.instantanes[k] !== v) { donnees.instantanes[k] = v; sauver(); }
+}
+
+// Effet d'un mouvement sur l'épargne : placement et virement +, retrait −.
+function effetEpargne(m) {
+  if (m.retrait) return -m.montant;
+  if ((m.estRevenu && m.compte) || m.virement) return m.montant;
+  return 0;
+}
+
+// Reconstitue le total de fin de journée, en partant d'aujourd'hui et en remontant le temps.
+function serieEpargne(debut) {
+  const effets = new Map();
+  for (const m of donnees.mouvements) {
+    const e = effetEpargne(m);
+    if (e) { const k = cleJour(new Date(m.date)); effets.set(k, (effets.get(k) || 0) + e); }
+  }
+  const auj = new Date(); auj.setHours(0, 0, 0, 0);
+  const jours = [];
+  let v = totalEpargne();
+  for (let d = auj; d >= debut; d = ajouterJours(d, -1)) {
+    const k = cleJour(d);
+    if (k !== cleJour(auj) && donnees.instantanes[k] != null) v = donnees.instantanes[k];
+    jours.push({ k, d, v: Math.max(0, v) });
+    v -= effets.get(k) || 0;
+  }
+  return jours.reverse();
+}
+
+function debutHistoire() {
+  const dates = [...donnees.mouvements.filter((m) => effetEpargne(m)).map((m) => m.date.slice(0, 10)), ...Object.keys(donnees.instantanes)];
+  const auj = new Date(); auj.setHours(0, 0, 0, 0);
+  if (!dates.length) return ajouterJours(auj, -30);
+  const premier = jourDe(cleJour(new Date(dates.sort()[0])));
+  return premier < ajouterJours(auj, -30) ? ajouterJours(premier, -1) : ajouterJours(auj, -30);
+}
+
+let periodeCourbe = 30;
+document.querySelectorAll("#periodes-epargne button").forEach((b) => b.addEventListener("click", () => {
+  periodeCourbe = Number(b.dataset.periode);
+  document.querySelectorAll("#periodes-epargne button").forEach((x) => { x.classList.toggle("actif", x === b); x.setAttribute("aria-pressed", String(x === b)); });
+  rendreCourbeEpargne();
+}));
+
+// Courbe lisse qui ne dépasse jamais les points (interpolation monotone).
+function cheminLisse(p) {
+  const n = p.length, f = (v) => v.toFixed(1);
+  if (n < 2) return "";
+  if (n === 2) return `M${f(p[0][0])} ${f(p[0][1])}L${f(p[1][0])} ${f(p[1][1])}`;
+  const dx = [], s = [], m = [];
+  for (let i = 0; i < n - 1; i++) { dx[i] = p[i + 1][0] - p[i][0]; s[i] = (p[i + 1][1] - p[i][1]) / dx[i]; }
+  m[0] = s[0]; m[n - 1] = s[n - 2];
+  for (let i = 1; i < n - 1; i++) m[i] = s[i - 1] * s[i] <= 0 ? 0 : (s[i - 1] + s[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (s[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+    const a = m[i] / s[i], b = m[i + 1] / s[i], h = a * a + b * b;
+    if (h > 9) { const k = 3 / Math.sqrt(h); m[i] = k * a * s[i]; m[i + 1] = k * b * s[i]; }
+  }
+  let d = `M${f(p[0][0])} ${f(p[0][1])}`;
+  for (let i = 0; i < n - 1; i++) {
+    d += `C${f(p[i][0] + dx[i] / 3)} ${f(p[i][1] + (m[i] * dx[i]) / 3)} ${f(p[i + 1][0] - dx[i] / 3)} ${f(p[i + 1][1] - (m[i + 1] * dx[i]) / 3)} ${f(p[i + 1][0])} ${f(p[i + 1][1])}`;
+  }
+  return d;
+}
+
+function rendreCourbeEpargne() {
+  const boite = $("courbe-epargne");
+  const auj = new Date(); auj.setHours(0, 0, 0, 0);
+  const debut = periodeCourbe ? ajouterJours(auj, -periodeCourbe) : debutHistoire();
+  const jours = serieEpargne(debut);
+  const n = jours.length - 1;
+
+  // Sur de longues périodes, un point par semaine (plus le dernier jour) pour une courbe douce.
+  const pas = n > 120 ? 7 : 1;
+  const pts = jours.filter((_, i) => i % pas === 0 || i === n).map((j) => ({ ...j, x: Math.round((j.d - jours[0].d) / 864e5) }));
+  const nbJours = Math.max(1, pts.at(-1).x);
+
+  const premier = jours[0].v, dernier = jours[n].v, ecart = dernier - premier;
+  const libellePeriode = { 30: "en 1 mois", 90: "en 3 mois", 365: "en 1 an", 0: "depuis le début" }[periodeCourbe];
+  $("courbe-total").textContent = euros(dernier);
+  const delta = $("courbe-delta");
+  delta.className = "delta " + (ecart > 0.004 ? "monte" : ecart < -0.004 ? "baisse" : "stable");
+  delta.textContent = `${ecart > 0.004 ? "▲" : ecart < -0.004 ? "▼" : "●"} ${eurosSigne(arrondi(ecart))}${premier > 0 && Math.abs(ecart) > 0.004 ? ` (${fmtPct1.format(ecart / premier)})` : ""} ${libellePeriode}`;
+
+  const W = 340, H = 196, m = { g: 6, d: 46, h: 16, b: 24 };
+  const pw = W - m.g - m.d, ph = H - m.h - m.b;
+  let min = Math.min(...pts.map((p) => p.v)), max = Math.max(...pts.map((p) => p.v));
+  const marge = Math.max((max - min) * 0.18, Math.max(max, 50) * 0.04);
+  min = Math.max(0, min - marge); max = max + marge;
+  const X = (x) => m.g + (x / nbJours) * pw;
+  const Y = (v) => m.h + (1 - (v - min) / (max - min)) * ph;
+
+  let svg = `<defs>
+    <linearGradient id="ce-ligne" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8b7bff"/><stop offset="1" stop-color="#10b981"/></linearGradient>
+    <linearGradient id="ce-aire" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a6bff" stop-opacity=".32"/><stop offset="1" stop-color="#7a6bff" stop-opacity="0"/></linearGradient>
+    <filter id="ce-lueur" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="3.5"/></filter>
+  </defs>`;
+  for (const k of [0, 0.5, 1]) {
+    const v = min + (max - min) * k, y = Y(v);
+    svg += `<line class="grille-c" x1="${m.g}" x2="${W - m.d + 4}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
+    svg += `<text x="${W - 2}" y="${(y + 3.5).toFixed(1)}" text-anchor="end">${fmtCompact.format(v)} €</text>`;
+  }
+  // Repères de dates
+  const ticks = [];
+  if (nbJours <= 31) for (let d = 0; d <= nbJours; d += 7) ticks.push([nbJours - d, fmtJourCourt.format(ajouterJours(auj, -d))]);
+  else {
+    const espacement = nbJours > 400 ? 3 : nbJours > 200 ? 2 : 1;
+    let i = 0;
+    for (const j of jours) if (j.k.endsWith("-01") && i++ % espacement === 0) ticks.push([Math.round((j.d - jours[0].d) / 864e5), fmtMoisAxe.format(j.d).replace(".", "")]);
+  }
+  for (const [x, t] of ticks) svg += `<text x="${X(x).toFixed(1)}" y="${H - 6}" text-anchor="middle">${t}</text>`;
+
+  const xy = pts.map((p) => [X(p.x), Y(p.v)]);
+  const ligne = cheminLisse(xy);
+  if (ligne) {
+    svg += `<path class="aire-c" d="${ligne}L${xy.at(-1)[0].toFixed(1)} ${H - m.b}L${xy[0][0].toFixed(1)} ${H - m.b}Z" fill="url(#ce-aire)"/>`;
+    svg += `<path d="${ligne}" fill="none" stroke="url(#ce-ligne)" stroke-width="7" opacity=".28" filter="url(#ce-lueur)"/>`;
+    svg += `<path class="ligne-c" d="${ligne}" fill="none" stroke="url(#ce-ligne)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" pathLength="1"/>`;
+  }
+  const [lx, ly] = xy.at(-1);
+  svg += `<circle class="pouls" cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="5" fill="#10b981"/>`;
+  svg += `<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="5" fill="#10b981" stroke="var(--surface)" stroke-width="2.5"/>`;
+  svg += `<line class="croix-c" x1="0" x2="0" y1="${m.h}" y2="${H - m.b}" visibility="hidden"/><circle class="repere-c" r="6" fill="var(--surface)" stroke="#7a6bff" stroke-width="3" visibility="hidden"/>`;
+  svg += `<rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>`;
+
+  boite.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Évolution de ton épargne ${libellePeriode} : de ${euros(premier)} à ${euros(dernier)}">${svg}</svg><div class="bulle-c" aria-hidden="true"></div>`;
+
+  const s = boite.querySelector("svg"), croix = s.querySelector(".croix-c"), repere = s.querySelector(".repere-c"), bulle = boite.querySelector(".bulle-c");
+  const montrer = (ev) => {
+    const r = s.getBoundingClientRect();
+    const x = ((ev.clientX - r.left) / r.width) * W;
+    let best = 0, dist = Infinity;
+    jours.forEach((j, i) => { const d = Math.abs(X(Math.round((j.d - jours[0].d) / 864e5)) - x); if (d < dist) { dist = d; best = i; } });
+    const j = jours[best], px = X(Math.round((j.d - jours[0].d) / 864e5)), py = Y(j.v);
+    croix.setAttribute("x1", px); croix.setAttribute("x2", px); croix.setAttribute("visibility", "visible");
+    repere.setAttribute("cx", px); repere.setAttribute("cy", py); repere.setAttribute("visibility", "visible");
+    const ech = r.width / W;
+    bulle.replaceChildren(el("b", {}, euros(j.v)), el("span", {}, majuscule(fmtJourLong.format(j.d))));
+    bulle.style.left = `${Math.min(Math.max(px * ech, 80), r.width - 80)}px`;
+    bulle.classList.add("visible");
+  };
+  const cacher = () => { croix.setAttribute("visibility", "hidden"); repere.setAttribute("visibility", "hidden"); bulle.classList.remove("visible"); };
+  let minuteur;
+  s.addEventListener("pointerdown", (ev) => { clearTimeout(minuteur); montrer(ev); });
+  s.addEventListener("pointermove", (ev) => { if (ev.pointerType === "mouse" || ev.buttons) montrer(ev); });
+  s.addEventListener("pointerleave", (ev) => { if (ev.pointerType === "mouse") cacher(); });
+  s.addEventListener("pointerup", (ev) => { if (ev.pointerType !== "mouse") { clearTimeout(minuteur); minuteur = setTimeout(cacher, 2500); } });
+
+  $("courbe-message").textContent = ecart > 0.004
+    ? "Ta courbe monte, continue comme ça 🚀"
+    : ecart < -0.004 ? "Elle a baissé : un placement ce mois-ci la fera remonter." : "Place un revenu sur un compte pour faire monter ta courbe.";
+}
 
 /* =========================================================
    Démarrage
