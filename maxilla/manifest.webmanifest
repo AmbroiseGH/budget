@@ -1,14 +1,14 @@
 {
   "name": "Maxilla",
   "short_name": "Maxilla",
-  "description": "Jaw training, eye area, cardio et lifestyle : ton programme glow-up, avec séries, niveaux et défi 6 mois.",
+  "description": "MPR, hard mewing, orbicularis oculi, chin raises et cardio : ton défi de 180 jours, une habitude à la fois.",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#05060a",
-  "theme_color": "#05060a",
+  "background_color": "#121216",
+  "theme_color": "#121216",
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
