@@ -1,31 +1,41 @@
 # Maxilla
 
-Le programme glow-up : jaw training, eye area, cardio et lifestyle, avec séries, niveaux, coffres et un défi de 6 mois. Même famille que Budget, Habitudes et Journal, mais en mode « jeu », sombre et lumineux.
+Ton défi de 180 jours : cinq exercices à cocher, une courbe qui monte à chaque journée parfaite, et tout le reste en fun facts. Même famille que Budget, Habitudes et Journal.
 
 **Ouvrir l'app : https://ambroisegh.github.io/budget/maxilla/**
 
 Pour l'installer sur l'iPhone : ouvre le lien dans **Safari**, touche **Partager**, puis **Sur l'écran d'accueil**.
 
+## Le programme
+
+| Exercice | Dose | Jours |
+|---|---|---|
+| MPR | 5 × 20 | chaque jour |
+| Hard mewing | 5 × 10 s | chaque jour |
+| Orbicularis oculi | 1 × 100 | chaque jour |
+| Supine chin raises | 5 × 20 | lundi, mercredi, vendredi |
+| Cardio | 40 min | mardi, jeudi |
+
 ## Ce qu'elle fait
 
-- **Aujourd'hui** : le programme du jour, rangé en trois parties (I. Jaw training, II. Eye area, III. Cardio). Touche un exercice pour le cocher : son, vibration, étincelles et XP. Le bouton à droite ouvre la fiche (consignes, pourquoi, précautions, jours au programme) et, quand il y a un ▶, la **séance guidée**. Les exercices qui ne tombent pas ce jour-là sont dans « Pas au programme », en bonus.
-- **Séance guidée** : minuteur pour les exercices tenus (hard mewing 10 × 10 s, auriculaire 12 × 5 s, occipitalis 10 × 5 s), tempo « ouvre / ferme » pour les séries (MPR, chin raises) et chrono « jusqu'à la brûlure » avec record (squinting, serrage).
-- **Paliers** : les chin raises montent de 2 × 10 à 5 × 25 au fil des séances, le MPR passe d'une pression légère à ferme.
-- **Bandeau lifestyle** : les conseils lifestyle défilent en continu sur l'accueil. Touche-le pour ouvrir l'onglet.
-- **Défi 6 mois** : à signer (appui long). Chaque journée parfaite (tout le programme du jour coché) fait monter la courbe ; un exercice oublié la casse et la série repart de zéro, mais le défi continue jusqu'au jour 180. Courbe avec zoom ou vue 6 mois, « mur des 180 jours », jalons J7 → J180, note finale de S à D.
-- **Gamification** : XP par exercice, bonus de section et de journée parfaite, multiplicateur de série (jusqu'à ×1,6 à 30 jours), 8 rangs (Argile → Apollon), 25 trophées, un coffre à ouvrir à chaque journée parfaite (commun, rare, épique ou légendaire : plus la série est longue, plus il a de chances d'être rare), et le prochain trophée affiché sur l'accueil.
-- **Lifestyle change** : symétrie du visage, skincare, nutrition et hormones. Les bonnes habitudes se cochent chaque jour (XP en bonus, séries par habitude) ; elles ne comptent pas pour la courbe du défi.
-- **Progrès** : rang et XP, les rangs, les trophées, le calendrier (touche un jour pour le corriger), les chiffres de chaque exercice (séances, répétitions, temps de contraction) et les réglages.
+- **Accueil** : le programme du jour, à cocher (son et vibration). Touche l'icône d'un exercice pour voir comment le faire, pourquoi, et les précautions. Les flèches à côté de « Aujourd'hui » servent à corriger un jour passé.
+- **Fun facts** : tout ce qui ne fait pas partie du programme (mewing, hunter eyes, serrage, sourire, auriculaire, front, occipitalis, symétrie, skincare, nutrition et hormones) défile dans le bandeau de l'accueil. L'ampoule en haut à droite ouvre le fun fact du jour, et l'onglet **Lifestyle** les range par thème.
+- **Défi 180 jours** : à signer d'un appui long. Chaque journée parfaite (tout le programme du jour coché) fait monter la courbe. Un exercice oublié la casse et la série repart de zéro, mais le défi continue jusqu'au jour 180. Courbe (zoom ou vue 6 mois), mur des 180 jours, jalons J7 → J180 fêtés à l'écran, note finale de S à D.
+- **Progrès** : série, meilleure série, journées parfaites, calendrier (touche un jour pour le corriger), total de chaque exercice et réglages (prénom, sons et vibrations, sauvegarde).
 
 ## Les données
 
-Elles restent sur le téléphone (clé `maxilla.v1` du stockage de Safari). Tout le reste (XP, niveaux, séries, courbe) est recalculé à partir des cases cochées. Sauvegarde : **Progrès → Réglages → Sauvegarde GitHub** (même dépôt privé que les autres apps, fichier `maxilla.json`), ou **Exporter** pour un fichier `.json`.
+Elles restent sur le téléphone, sous la même clé que la première version (`maxilla.v1` du stockage de Safari). Les cases déjà cochées pour ces cinq exercices comptent toujours. Les anciennes données (XP, trophées, coffres, lifestyle coché, jours personnalisés) sont gardées telles quelles, simplement plus utilisées. Séries et courbe sont recalculées à partir des cases cochées.
 
-Changer les jours d'un exercice ne modifie que les jours à venir : les jours passés gardent leur programme, donc la courbe ne change pas après coup.
+Sauvegarde : **Progrès → Réglages → Sauvegarde GitHub** (même dépôt privé que les autres apps, fichier `maxilla.json`), ou **Exporter** pour un fichier `.json`.
+
+## Changer le programme
+
+Le programme est dans `contenu.js` (`PROGRAMMES`). Pour le changer sans toucher aux jours passés, ajoute une entrée datée (`depuis: "AAAA-MM-JJ"`) au lieu de modifier l'ancienne : chaque jour garde le programme en vigueur à sa date, donc la courbe ne change pas après coup.
 
 ## Fichiers
 
-- `contenu.js` : la méthode (exercices, consignes, fréquences, lifestyle, rangs, trophées, phrases des coffres). C'est ici qu'on change un texte ou une fréquence par défaut.
+- `contenu.js` : les exercices (consignes, pourquoi, précautions), le programme, les fun facts et les phrases du jour. C'est ici qu'on change un texte.
 - `app.js` : l'app. `sons.js` : les sons, synthétisés (aucun fichier audio). `sauvegarde.js` : la sauvegarde GitHub commune aux apps.
-- Polices Plus Jakarta Sans et Unbounded (licence OFL) dans `fonts/`.
+- Police Plus Jakarta Sans (licence OFL) dans `fonts/`. Les icônes de l'app sont tirées du logo.
 - Quand tu modifies un fichier, change `VERSION` dans `maxilla/sw.js`.
