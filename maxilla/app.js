@@ -66,6 +66,9 @@ function nomDuJour(k) {
 function joursTexte(jours = []) {
   if (jours.length === 7) return "Chaque jour";
   if (!jours.length) return "Aucun jour";
+  const cle = [...jours].sort().join("");
+  if (cle === "12345") return "En semaine";
+  if (cle === "06") return "Le week-end";
   return ORDRE_SEMAINE.filter((j) => jours.includes(j)).map((j) => majuscule(JOURS_ABR[j])).join(" · ");
 }
 
@@ -148,11 +151,17 @@ function planDu(k) {
   return p;
 }
 const estDu = (e, k) => (planDu(k)[e.id] || []).includes(jourSem(k));
+// La dose d'un exercice un jour donné : celle de départ, puis les changements datés (PROGRAMMES[].doses).
+function doseDu(e, k) {
+  let d = { presc: e.presc, par: e.unite.par };
+  for (const p of PROGRAMMES) { if (p.depuis > k) break; if (p.doses?.[e.id]) d = { ...d, ...p.doses[e.id] }; }
+  return d;
+}
 const dus = (k) => EXERCICES.filter((e) => estDu(e, k));
 const fait = (id, k) => !!donnees.jours[k]?.ex.includes(id);
 
-function totalTexte(e, n) {
-  const u = e.unite, total = n * u.par;
+function totalTexte(e, total) {
+  const u = e.unite;
   if (!u.duree) return pluriel(total, u.mot);
   if (u.mot === "seconde") {
     if (total < 60) return pluriel(total, "seconde") + " de contraction";
@@ -179,18 +188,19 @@ function analyser() {
   const J = {};
   let chaine = 0, record = 0, parfaits = 0, coches = 0, derniereCasse = null;
   const seances = Object.fromEntries(EXERCICES.map((e) => [e.id, 0]));
+  const volumes = Object.fromEntries(EXERCICES.map((e) => [e.id, 0])); // répétitions, secondes ou minutes
   for (let k = debut; k <= t; k = decaler(k, 1)) {
     const ex = donnees.jours[k]?.ex || [];
     const du = dus(k);
     const nbFaits = du.reduce((n, e) => n + (ex.includes(e.id) ? 1 : 0), 0);
     const parfait = du.length > 0 && nbFaits === du.length;
-    for (const id of ex) if (EX[id]) { seances[id]++; coches++; }
+    for (const id of ex) if (EX[id]) { seances[id]++; volumes[id] += doseDu(EX[id], k).par; coches++; }
     if (parfait) { chaine++; parfaits++; }
     else if (k !== t) { if (chaine > 0) derniereCasse = { k, avant: chaine }; chaine = 0; } // aujourd'hui, pas encore fini, ne casse rien
     record = Math.max(record, chaine);
     J[k] = { parfait, dus: du.length, faits: nbFaits, chaine };
   }
-  const res = { t, debut, J, serie: chaine, record, parfaits, coches, seances, derniereCasse };
+  const res = { t, debut, J, serie: chaine, record, parfaits, coches, seances, volumes, derniereCasse };
   res.defi = analyserDefi(res);
   return res;
 }
@@ -361,10 +371,15 @@ function rendreJour() {
 
   const du = dus(jourVu);
   $("liste").replaceChildren(...du.map((e) => ligneEx(e, jourVu)));
-  const autres = EXERCICES.filter((e) => !du.includes(e));
+  const groupes = new Map(); // mêmes jours : « MPR et Hard mewing (en semaine) »
+  for (const e of EXERCICES.filter((x) => !du.includes(x))) {
+    const j = joursTexte(planDu(jourVu)[e.id]).toLowerCase();
+    groupes.set(j, [...(groupes.get(j) || []), e]);
+  }
+  const noms = (liste) => liste.map((e, i) => [i ? (i === liste.length - 1 ? " et " : ", ") : "", el("b", {}, e.nom)]).flat();
   $("hors").replaceChildren(
-    autres.length ? el("span", {}, `Pas ${jourVu === t ? "aujourd'hui" : "ce jour-là"} : `,
-      ...autres.map((e, i) => [i ? ", " : "", el("b", {}, e.nom), ` (${joursTexte(planDu(jourVu)[e.id]).toLowerCase()})`]).flat(), ".") : null,
+    groupes.size ? el("span", {}, `Pas ${jourVu === t ? "aujourd'hui" : "ce jour-là"} : `,
+      ...[...groupes].map(([j, liste], i) => [i ? ", " : "", ...noms(liste), ` (${j})`]).flat(), ".") : null,
     el("span", {}, "Touche l'icône d'un exercice pour voir comment le faire."));
 }
 
@@ -397,7 +412,7 @@ function rendreHeros() {
     el("div", { class: "heros-prog" },
       el("span", { class: "piste", role: "progressbar", "aria-valuemin": 0, "aria-valuemax": du.length, "aria-valuenow": n, "aria-label": "Exercices terminés" },
         el("i", { style: `width:${pct.toFixed(1)}%` })),
-      el("span", { class: "heros-compte" + (parfait ? " parfait" : "") }, parfait ? "Journée parfaite" : `${n} / ${du.length} terminés`)),
+      el("span", { class: "heros-compte" + (parfait ? " parfait" : "") }, parfait ? "Journée parfaite" : `${n} / ${du.length} ${n > 1 ? "terminés" : "terminé"}`)),
     el("button", { class: "bouton-lavande", onclick: action }, el("span", {}, bouton), el("span", { html: ico("chevron") })));
   $("heros").classList.toggle("parfait", parfait);
 }
@@ -415,11 +430,11 @@ function illustration(D) {
 }
 
 function ligneEx(e, k) {
-  const f = fait(e.id, k);
+  const f = fait(e.id, k), presc = doseDu(e, k).presc;
   return el("div", { class: "ligne" + (f ? " fait" : ""), "data-id": e.id },
     el("button", { class: "ligne-ico", "aria-label": `${e.nom} : comment faire`, onclick: () => ouvrirFiche(e.id), html: ico(e.icone) }),
-    el("button", { class: "ligne-corps", role: "checkbox", "aria-checked": f ? "true" : "false", "aria-label": `${e.nom}, ${e.presc}`, onclick: () => basculer(e.id, k) },
-      el("span", { class: "ligne-txt" }, el("b", {}, e.nom), el("small", {}, e.presc)),
+    el("button", { class: "ligne-corps", role: "checkbox", "aria-checked": f ? "true" : "false", "aria-label": `${e.nom}, ${presc}`, onclick: () => basculer(e.id, k) },
+      el("span", { class: "ligne-txt" }, el("b", {}, e.nom), el("small", {}, presc)),
       el("span", { class: "case", html: ico("coche") })));
 }
 
@@ -481,7 +496,7 @@ function ouvrirFiche(id) {
       el("span", { class: "fiche-ico", html: ico(e.icone) }),
       el("div", {}, el("h2", {}, e.nom), el("p", { class: "fiche-long" }, e.long))),
     el("div", { class: "pastilles" },
-      el("span", { class: "pastille forte" }, e.presc),
+      el("span", { class: "pastille forte" }, doseDu(e, t).presc),
       el("span", { class: "pastille" }, joursTexte(planDu(t)[id]))),
     el("button", { class: "bouton-lavande", onclick: () => { fermerFeuille(); setTimeout(() => basculer(id, k), 280); } },
       el("span", {}, f ? `Décocher${lib}` : `Marquer comme fait${lib}`)),
@@ -490,7 +505,7 @@ function ouvrirFiche(id) {
     el("h3", {}, "Pourquoi"),
     ...e.pourquoi.map((x) => el("p", { class: "fiche-p" }, x)),
     e.attention ? el("div", { class: "attention" }, el("b", {}, "Attention"), el("p", {}, e.attention)) : null,
-    el("p", { class: "fiche-note" }, `Depuis le début : ${pluriel(A.seances[id], "séance")} · ${totalTexte(e, A.seances[id])}.`),
+    el("p", { class: "fiche-note" }, `Depuis le début : ${pluriel(A.seances[id], "séance")} · ${totalTexte(e, A.volumes[id])}.`),
   ], { classe: "fiche" });
 }
 
@@ -780,7 +795,7 @@ function carteProgramme() {
     el("div", { class: "prog-liste" }, ...EXERCICES.map((e) => el("button", { class: "prog-ligne", onclick: () => ouvrirFiche(e.id) },
       el("span", { class: "tuile-ico", html: ico(e.icone) }),
       el("span", { class: "prog-txt" }, el("b", {}, e.nom), el("small", {}, joursTexte(planDu(t)[e.id]))),
-      el("span", { class: "prog-presc" }, e.presc)))));
+      el("span", { class: "prog-presc" }, doseDu(e, t).presc)))));
 }
 
 function carteRegles() {
@@ -985,7 +1000,7 @@ function carteExercices() {
       const n = A.seances[e.id];
       return el("button", { class: "prog-ligne", onclick: () => ouvrirFiche(e.id) },
         el("span", { class: "tuile-ico", html: ico(e.icone) }),
-        el("span", { class: "prog-txt" }, el("b", {}, e.nom), el("small", {}, totalTexte(e, n))),
+        el("span", { class: "prog-txt" }, el("b", {}, e.nom), el("small", {}, totalTexte(e, A.volumes[e.id]))),
         el("span", { class: "prog-presc" }, pluriel(n, "séance")));
     })));
 }

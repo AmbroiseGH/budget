@@ -10,11 +10,13 @@ Pour l'installer sur l'iPhone : ouvre le lien dans **Safari**, touche **Partager
 
 | Exercice | Dose | Jours |
 |---|---|---|
-| MPR | 5 × 20 | chaque jour |
-| Hard mewing | 5 × 10 s | chaque jour |
+| MPR | 5 × 20 | du lundi au vendredi |
+| Hard mewing | 5 × 10 s | du lundi au vendredi |
 | Orbicularis oculi | 1 × 100 | chaque jour |
-| Supine chin raises | 5 × 20 | lundi, mercredi, vendredi |
+| Supine chin raises | 3 × 20 | lundi, mercredi, vendredi |
 | Cardio | 40 min | mardi, jeudi |
+
+Le week-end, seul l'orbicularis oculi est au programme.
 
 ## Ce qu'elle fait
 
@@ -31,7 +33,7 @@ Sauvegarde : **Progrès → Réglages → Sauvegarde GitHub** (même dépôt pri
 
 ## Changer le programme
 
-Le programme est dans `contenu.js` (`PROGRAMMES`). Pour le changer sans toucher aux jours passés, ajoute une entrée datée (`depuis: "AAAA-MM-JJ"`) au lieu de modifier l'ancienne : chaque jour garde le programme en vigueur à sa date, donc la courbe ne change pas après coup.
+Le programme est dans `contenu.js` (`PROGRAMMES`). Pour le changer sans toucher aux jours passés, ajoute une entrée datée (`depuis: "AAAA-MM-JJ"`) au lieu de modifier l'ancienne : chaque jour garde le programme en vigueur à sa date, donc la courbe ne change pas après coup. Une nouvelle dose se met dans `doses` de l'entrée (ex. chin raises à 3 × 20 depuis le 14 novembre 2026) : les totaux des jours passés gardent l'ancienne dose.
 
 ## Fichiers
 
