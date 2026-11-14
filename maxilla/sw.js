@@ -1,5 +1,5 @@
 // Garde l'app disponible hors ligne. Changer VERSION à chaque mise à jour des fichiers.
-const VERSION = "maxilla-v2";
+const VERSION = "maxilla-v3";
 const FICHIERS = ["./", "index.html", "style.css", "contenu.js", "sons.js", "app.js", "sauvegarde.js", "manifest.webmanifest",
   "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "fonts/jakarta-500.woff2", "fonts/jakarta-600.woff2", "fonts/jakarta-700.woff2", "fonts/jakarta-800.woff2"];

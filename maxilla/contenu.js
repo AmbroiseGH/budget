@@ -6,9 +6,11 @@
    ========================================================= */
 
 const TOUS_LES_JOURS = [0, 1, 2, 3, 4, 5, 6];
+const EN_SEMAINE = [1, 2, 3, 4, 5];
 
 /* ---------- Le défi : les exercices à cocher ----------
-   L'id « squint » est celui de l'ancien squinting contrôlé : les cases déjà cochées restent valables. */
+   L'id « squint » est celui de l'ancien squinting contrôlé : les cases déjà cochées restent valables.
+   presc et unite.par : la dose de départ. Les changements de dose se font, datés, dans PROGRAMMES. */
 const EXERCICES = [
   {
     id: "mpr", icone: "pouce", nom: "MPR", long: "Mental Protuberance Resistance",
@@ -62,7 +64,7 @@ const EXERCICES = [
       "Allonge-toi sur le dos, la tête qui dépasse légèrement du lit.",
       "Garde la langue contre le palais pendant tout l'exercice.",
       "Rentre lentement le menton comme pour faire un double menton, sans ramener la tête vers la poitrine.",
-      "5 séries de 20.",
+      "3 séries de 20.",
     ],
     attention: "Ne force pas et monte en charge doucement, pour ménager l'ATM (l'articulation de la mâchoire).",
   },
@@ -81,11 +83,19 @@ const EXERCICES = [
 
 /* ---------- Le programme ----------
    Pour changer de programme plus tard, ajoute une entrée avec sa date de départ :
-   les jours passés gardent le programme qu'ils avaient, la courbe ne bouge pas après coup. */
+   les jours passés gardent le programme qu'ils avaient, la courbe ne bouge pas après coup.
+   plan : les jours de chaque exercice. doses : une nouvelle dose à partir de cette date
+   (elle reste valable ensuite) ; les totaux des jours passés gardent l'ancienne. */
 const PROGRAMMES = [
   {
     depuis: "2026-11-10",
     plan: { mpr: TOUS_LES_JOURS, hardmew: TOUS_LES_JOURS, squint: TOUS_LES_JOURS, chin: [1, 3, 5], cardio: [2, 4] },
+  },
+  {
+    // Le week-end, seulement les yeux. Chin raises allégés à 3 × 20.
+    depuis: "2026-11-14",
+    plan: { mpr: EN_SEMAINE, hardmew: EN_SEMAINE, squint: TOUS_LES_JOURS, chin: [1, 3, 5], cardio: [2, 4] },
+    doses: { chin: { presc: "3 × 20", par: 60 } },
   },
 ];
 
