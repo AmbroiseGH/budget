@@ -75,8 +75,8 @@ const EXERCICES = [
       "Le cardio fait fondre le gras et réduit l'inflammation, qui empâtent les traits du visage.",
     ],
     etapes: [
-      "40 minutes d'effort continu : marche rapide, course, vélo, natation, rameur…",
-      "Coche quand tes 40 minutes sont faites.",
+      "45 minutes d'effort continu : marche rapide, course, vélo, natation, rameur…",
+      "Coche quand tes 45 minutes sont faites.",
     ],
   },
 ];
@@ -102,6 +102,12 @@ const PROGRAMMES = [
     depuis: "2026-11-19",
     plan: { mpr: EN_SEMAINE, hardmew: EN_SEMAINE, squint: TOUS_LES_JOURS, chin: [1, 3, 5], cardio: [2, 4] },
     doses: { mpr: { presc: "3 × 20", par: 60 } },
+  },
+  {
+    // Cardio à 45 minutes.
+    depuis: "2026-11-20",
+    plan: { mpr: EN_SEMAINE, hardmew: EN_SEMAINE, squint: TOUS_LES_JOURS, chin: [1, 3, 5], cardio: [2, 4] },
+    doses: { cardio: { presc: "45 min", par: 45 } },
   },
 ];
 
