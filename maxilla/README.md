@@ -10,7 +10,7 @@ Pour l'installer sur l'iPhone : ouvre le lien dans **Safari**, touche **Partager
 
 | Exercice | Dose | Jours |
 |---|---|---|
-| MPR | 5 × 20 | du lundi au vendredi |
+| MPR | 3 × 20 | du lundi au vendredi |
 | Hard mewing | 5 × 10 s | du lundi au vendredi |
 | Orbicularis oculi | 1 × 100 | chaque jour |
 | Supine chin raises | 3 × 20 | lundi, mercredi, vendredi |
