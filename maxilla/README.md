@@ -14,7 +14,7 @@ Pour l'installer sur l'iPhone : ouvre le lien dans **Safari**, touche **Partager
 | Hard mewing | 5 × 10 s | du lundi au vendredi |
 | Orbicularis oculi | 1 × 100 | chaque jour |
 | Supine chin raises | 3 × 20 | lundi, mercredi, vendredi |
-| Cardio | 40 min | mardi, jeudi |
+| Cardio | 45 min | mardi, jeudi |
 
 Le week-end, seul l'orbicularis oculi est au programme.
 
