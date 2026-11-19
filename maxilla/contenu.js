@@ -22,7 +22,7 @@ const EXERCICES = [
       "Place tes pouces sous ton menton.",
       "Mains jointes comme en prière, la base des index appuyée contre l'avant du menton.",
       "Ouvre et ferme doucement la bouche contre la résistance de tes pouces.",
-      "5 séries de 20, avec une pause entre les séries.",
+      "3 séries de 20, avec une pause entre les séries.",
       "Augmente la pression petit à petit, au fil des semaines.",
     ],
     attention: "Jamais de douleur ni de craquement dans la mâchoire (risque pour l'ATM, l'articulation de la mâchoire). Si ça craque, allège la pression.",
@@ -96,6 +96,12 @@ const PROGRAMMES = [
     depuis: "2026-11-14",
     plan: { mpr: EN_SEMAINE, hardmew: EN_SEMAINE, squint: TOUS_LES_JOURS, chin: [1, 3, 5], cardio: [2, 4] },
     doses: { chin: { presc: "3 × 20", par: 60 } },
+  },
+  {
+    // MPR allégé à 3 × 20.
+    depuis: "2026-11-19",
+    plan: { mpr: EN_SEMAINE, hardmew: EN_SEMAINE, squint: TOUS_LES_JOURS, chin: [1, 3, 5], cardio: [2, 4] },
+    doses: { mpr: { presc: "3 × 20", par: 60 } },
   },
 ];
 
