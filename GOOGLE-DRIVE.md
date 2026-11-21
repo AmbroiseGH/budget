@@ -53,7 +53,7 @@ Il faut d'abord créer un « identifiant » Google, une seule fois (environ 5 mi
 5. **Créer**. Google affiche l'**ID client** (finit par `.apps.googleusercontent.com`) et le **Code secret du client** (commence par `GOCSPX-`).
    **Copie les deux dans une note privée** (ou touche **Télécharger le JSON**) : Google ne remontre plus le code secret ensuite.
 
-Ne partage pas le code secret. Il reste uniquement sur ton téléphone, jamais dans le dépôt public.
+L'identifiant de Frank (projet « Mes applications ») est déjà intégré dans `drive.js` : les étapes 1 à 4 ne servent que pour en créer un nouveau. Pour changer le code secret : console Google Cloud → **Clients** → **Apps iPhone** → nouveau code secret, puis mettre à jour `SECRET` dans `drive.js`.
 
 ## 5. Connecter chaque app
 
@@ -66,7 +66,7 @@ Ouvre chaque app **depuis son icône sur l'écran d'accueil** (c'est là que son
 | Journal | Onglet Journal → ⚙️ → **Sauvegarde Google Drive** |
 | Maxilla | Onglet Progrès → Réglages → **Google Drive** |
 
-Colle l'ID client et le code secret, touche **Se connecter à Google**, choisis ton compte et touche **Continuer** / **Autoriser**. Tu reviens dans l'app et la première sauvegarde part tout de suite.
+Touche **Se connecter à Google** (l'identifiant du projet « Mes applications » est déjà intégré aux apps, rien à coller), choisis ton compte et touche **Continuer** / **Autoriser**. Tu reviens dans l'app et la première sauvegarde part tout de suite.
 
 Sur iPhone, chaque app de l'écran d'accueil a son propre stockage : il faut faire cette connexion une fois dans chacune des 4 apps.
 
