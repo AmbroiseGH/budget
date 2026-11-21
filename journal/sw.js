@@ -1,9 +1,11 @@
 // Garde l'app disponible hors ligne. Changer VERSION à chaque mise à jour des fichiers.
-const VERSION = "journal-v3";
+const VERSION = "journal-v4";
 const FICHIERS = ["./", "index.html", "style.css", "astres.js", "app.js", "drive.js", "manifest.webmanifest",
   "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "fonts/jakarta-500.woff2", "fonts/jakarta-600.woff2", "fonts/jakarta-700.woff2", "fonts/jakarta-800.woff2",
-  "fonts/instrument-italique.woff2", "sons/etoile.mp3"];
+  "fonts/instrument-italique.woff2", "sons/etoile.mp3",
+  // Le journal secret : la pousse, le code et la nébuleuse
+  "jardin.css", "jardin.js", "pensees.js", "images/nebuleuse.webp", "sons/bulle.mp3", "sons/envol.mp3"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FICHIERS)).then(() => self.skipWaiting()));

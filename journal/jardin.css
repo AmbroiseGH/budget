@@ -1,0 +1,391 @@
+/* =========================================================
+   Journal secret : le jardin intérieur, le code à 6 chiffres
+   et la nébuleuse des pensées
+   ========================================================= */
+
+/* ---------- Le fond du jardin : nuit calme, aurores, lucioles ---------- */
+.fond-jardin {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden;
+  opacity: 0; visibility: hidden; transition: opacity .6s var(--doux-sortie), visibility 0s .6s;
+}
+body.sur-jardin .fond-jardin { opacity: 1; visibility: visible; transition: opacity .6s var(--doux-sortie); }
+.fj-ciel {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(95% 42% at 50% 50%, #12404a 0%, #0b2a36 42%, transparent 78%),
+    linear-gradient(180deg, #02060f 0%, #051226 36%, #0a1f30 70%, #0b2630 100%);
+}
+.fj-aurore i {
+  position: absolute; left: -15vw; top: 2vh; width: 130vw; height: 46vh; border-radius: 50%;
+  background: radial-gradient(closest-side, #3cf5b52b, #3cf5b50d 55%, transparent);
+  animation: fj-aurore 28s ease-in-out infinite alternate;
+}
+.fj-aurore i:nth-child(2) { top: 14vh; left: -40vw; background: radial-gradient(closest-side, #8b7bff2e, #8b7bff0a 55%, transparent); animation-duration: 36s; animation-direction: alternate-reverse; }
+.fj-aurore i:nth-child(3) { top: -8vh; left: 25vw; width: 95vw; background: radial-gradient(closest-side, #59d7ff24, transparent); animation-duration: 43s; }
+@keyframes fj-aurore {
+  from { transform: translate(-6vw, 0) rotate(-7deg) scaleX(1); }
+  to { transform: translate(8vw, 3vh) rotate(6deg) scaleX(1.3); }
+}
+.fj-etoiles i {
+  position: absolute; width: var(--t); height: var(--t); border-radius: 50%; background: #e9fbff;
+  box-shadow: 0 0 calc(var(--t) * 3) #bff4ff99;
+  animation: fj-scintille var(--d) ease-in-out var(--r) infinite alternate;
+}
+@keyframes fj-scintille { from { opacity: .18; } to { opacity: .95; } }
+.fj-lucioles i {
+  position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #f6ffc2;
+  box-shadow: 0 0 6px 2px #e8ff9a88, 0 0 18px 7px #d6ff7a26;
+  animation: fj-vole var(--d) ease-in-out var(--r) infinite alternate, fj-cligne var(--c) ease-in-out var(--r) infinite alternate;
+}
+@keyframes fj-vole {
+  0% { transform: translate(0, 0); }
+  33% { transform: translate(var(--dx), calc(var(--dy) * -1)); }
+  66% { transform: translate(calc(var(--dx) * -.7), calc(var(--dy) * -.4)); }
+  100% { transform: translate(calc(var(--dx) * .3), var(--dy)); }
+}
+@keyframes fj-cligne { 0%, 25% { opacity: .08; } 100% { opacity: 1; } }
+
+body.sur-jardin .bande-statut { background: #02060f; }
+body.sur-jardin .tabbar { background: #06131fc2; border-color: #ffffff1c; box-shadow: 0 12px 32px -10px #000000b3; }
+body.sur-jardin .tabbar button { color: #ffffffa3; }
+body.sur-jardin .tabbar button.actif { color: #fff; background: #ffffff1f; }
+
+/* ---------- L'onglet ---------- */
+#jardin { color: #fff; }
+#jardin.actif {
+  display: flex; flex-direction: column;
+  min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 124px);
+  min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 124px);
+}
+.tete-jardin { margin-bottom: 0; }
+.tete-jardin .sur-titre { color: #bdeee4b3; }
+.tete-jardin h1 { text-shadow: 0 0 34px #7dfbe64d; }
+.boutons-jardin { display: flex; gap: 8px; }
+.rond-jardin {
+  width: 40px; height: 40px; flex: none; border-radius: 14px; display: grid; place-items: center; color: #fff;
+  background: #ffffff14; border: 1px solid #ffffff26; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  animation: chip-in .4s var(--ressort) both;
+}
+.rond-jardin[hidden] { display: none; }
+.rond-jardin svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* La scène prend toute la place libre et rétrécit quand le clavier du code est là */
+.scene-jardin { flex: 1 1 0; min-height: 130px; display: grid; place-items: end center; container-type: size; padding: 2px 0 clamp(2px, 2.2vh, 24px); }
+.dome-jardin { position: relative; width: min(100%, 470px, calc(100cqh * 1.2)); aspect-ratio: 360 / 300; }
+.j-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.j-svg * { transform-box: view-box; }
+
+.j-respire { animation: j-respire 7s ease-in-out infinite alternate; }
+@keyframes j-respire { from { opacity: .6; } to { opacity: 1; } }
+.j-hex { animation: j-hex 9s ease-in-out infinite alternate; }
+@keyframes j-hex { from { opacity: .3; } to { opacity: .9; } }
+.j-flux { animation: j-flux 7.5s linear infinite; }
+.j-flux-2 { animation-duration: 11.5s; animation-direction: reverse; opacity: .75; }
+@keyframes j-flux { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -100; } }
+.j-balance { animation: j-balance 6s ease-in-out infinite alternate; }
+@keyframes j-balance { from { transform: rotate(-1.5deg); } to { transform: rotate(1.5deg); } }
+.j-tronc { animation-name: j-balance-tronc; animation-duration: 9s; }
+@keyframes j-balance-tronc { from { transform: rotate(-.8deg); } to { transform: rotate(.8deg); } }
+.j-bourgeon circle, .j-lueur { animation: j-lueur 3s ease-in-out infinite alternate; }
+@keyframes j-lueur { from { opacity: .4; } to { opacity: 1; } }
+.j-luciole { animation: j-luciole 9s ease-in-out infinite alternate, j-cligne 3s ease-in-out infinite alternate; }
+@keyframes j-luciole {
+  0% { transform: translate(0, 0); }
+  33% { transform: translate(var(--dx), calc(var(--dy) * -1)); }
+  66% { transform: translate(calc(var(--dx) * -.6), calc(var(--dy) * -.3)); }
+  100% { transform: translate(calc(var(--dx) * .4), var(--dy)); }
+}
+@keyframes j-cligne { 0%, 30% { opacity: .12; } 100% { opacity: 1; } }
+.j-brume { opacity: 0; transition: opacity 1.5s var(--doux-sortie); }
+.dome-jardin.embrume .j-brume { opacity: 1; transition-duration: .9s; }
+.j-brume-a { animation: j-brume 14s ease-in-out infinite alternate; }
+.j-brume-b { animation: j-brume 19s ease-in-out infinite alternate-reverse; }
+@keyframes j-brume { from { transform: translateX(-18px); } to { transform: translateX(18px); } }
+/* Le dôme s'illumine quand une pensée le nourrit */
+.dome-jardin::after {
+  content: ""; position: absolute; left: 11%; right: 11%; top: 6%; bottom: 25%; border-radius: 50% 50% 46% 46%;
+  background: radial-gradient(closest-side, #d8ffe9 0%, #9dfcd855 40%, transparent 75%); opacity: 0; pointer-events: none;
+}
+.dome-jardin.nourri::after { animation: nourri 2.4s var(--doux-sortie); }
+@keyframes nourri { 0% { opacity: 0; } 25% { opacity: .55; } 100% { opacity: 0; } }
+
+/* Hors de l'onglet (ou quand la nébuleuse le cache), le jardin se met en pause */
+body:not(.sur-jardin) .fond-jardin *, body.cache .fond-jardin *,
+body:not(.sur-jardin) .scene-jardin *, body.cache .scene-jardin *, body.neb-ouverte .scene-jardin *, body.neb-ouverte .fond-jardin * {
+  animation-play-state: paused !important;
+}
+
+/* ---------- Le jardin ouvert ---------- */
+.ui-jardin { text-align: center; padding-top: 2px; animation: apparait-ui .7s var(--doux-sortie) both; }
+.ui-jardin[hidden], .ui-code[hidden], .accueil-code[hidden], .saisie-code[hidden] { display: none; }
+@keyframes apparait-ui { from { opacity: 0; transform: translateY(14px); filter: blur(3px); } }
+.stade {
+  margin: 0; font-family: "Instrument", Georgia, serif; font-style: italic; font-weight: 400;
+  font-size: clamp(38px, 11vw, 50px); line-height: 1; letter-spacing: -0.005em; text-shadow: 0 0 30px #9dffc866;
+}
+.stade.change { animation: apparait .6s var(--doux-sortie); }
+.compte-jardin { margin: 9px 0 0; font-size: 12px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; color: #c8f5e6c7; }
+.compte-jardin.change { animation: compte .7s var(--ressort); }
+@keyframes compte { 40% { transform: scale(1.12); color: #fff; text-shadow: 0 0 14px #b6ffd9; } }
+.phrase-jardin { margin: 7px auto 0; max-width: 330px; min-height: 19px; font-size: 14px; font-weight: 600; line-height: 1.4; color: #e6fff8b3; }
+.bouton-ecrire {
+  width: 100%; min-height: 56px; margin-top: 14px; border-radius: 20px; font-size: 17px; font-weight: 800; letter-spacing: -0.015em;
+  display: flex; align-items: center; justify-content: center; gap: 9px; color: #2b0a15; background: #fff;
+  box-shadow: 0 14px 34px -12px #ff4d6dd9, 0 0 0 1px #ffffff1a; transition: transform .25s var(--ressort);
+}
+.bouton-ecrire svg { width: 20px; height: 20px; fill: none; stroke: #d81f45; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.lien-revoir {
+  margin: 10px auto 0; display: flex; align-items: center; justify-content: center; gap: 9px; padding: 10px 16px; border-radius: 999px;
+  font-size: 14px; font-weight: 800; color: #fff; background: #ffffff12; border: 1px solid #ffffff24;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.lien-revoir[hidden] { display: none; }
+.mini-bulle {
+  width: 18px; height: 18px; flex: none; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fff 0 10%, #ffffff00 22%), radial-gradient(circle, #ff4d6d22 40%, #ffb3c099 76%, #ffe4ea 96%);
+  box-shadow: 0 0 8px #ff6d8a88;
+}
+
+/* ---------- Le code à 6 chiffres ---------- */
+.ui-code { text-align: center; padding-bottom: 2px; animation: apparait-ui .6s var(--doux-sortie) both; }
+.accueil-code { padding: 0 6px 6px; }
+.accueil-code h2 { margin: 0; font-family: "Instrument", Georgia, serif; font-style: italic; font-weight: 400; font-size: clamp(30px, 8.6vw, 38px); line-height: 1.05; }
+.accueil-code p { margin: 10px auto 0; max-width: 360px; font-size: 14.5px; line-height: 1.45; font-weight: 600; color: #e6fff8c4; }
+.accueil-code p.discret { font-size: 13px; color: #e6fff899; }
+.accueil-code .bouton-ecrire { margin-top: 18px; }
+.code-titre { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.015em; }
+.code-sous { margin: 3px 0 0; font-size: 13px; font-weight: 600; color: #e6fff8a6; min-height: 18px; }
+.points { display: flex; justify-content: center; gap: 17px; margin: 14px 0 8px; }
+.points i {
+  width: 14px; height: 14px; border-radius: 50%; border: 1.6px solid #ffffffa6;
+  transition: background .15s, border-color .2s, box-shadow .2s, transform .25s var(--ressort);
+}
+.points i.plein { background: #fff; border-color: #fff; box-shadow: 0 0 12px #c8fff2b3; transform: scale(1.1); }
+.points.erreur i { border-color: #ff8a96; }
+.points.erreur i.plein { background: #ff7b8a; border-color: #ff7b8a; box-shadow: 0 0 12px #ff4d6d99; }
+.points.secoue { animation: secoue .46s; }
+@keyframes secoue { 15%, 55% { transform: translateX(-11px); } 35%, 75% { transform: translateX(10px); } 90% { transform: translateX(-3px); } }
+.points.attente i { animation: attente 1s ease-in-out infinite; }
+.points.attente i:nth-child(2) { animation-delay: .1s; } .points.attente i:nth-child(3) { animation-delay: .2s; }
+.points.attente i:nth-child(4) { animation-delay: .3s; } .points.attente i:nth-child(5) { animation-delay: .4s; } .points.attente i:nth-child(6) { animation-delay: .5s; }
+@keyframes attente { 50% { transform: translateY(-5px) scale(1.15); box-shadow: 0 0 16px #c8fff2; } }
+.points.ok i { background: #a8ffd8; border-color: #a8ffd8; box-shadow: 0 0 18px #7dfbe6; transform: scale(1.25); }
+.code-msg { min-height: 19px; margin: 0 12px 10px; font-size: 13px; font-weight: 700; color: #ffd3d9; }
+.code-msg.doux { color: #c8f5e6; }
+.pave {
+  --k: clamp(54px, 8.4vh, 74px);
+  display: grid; grid-template-columns: repeat(3, var(--k)); justify-content: center;
+  gap: clamp(8px, 1.5vh, 14px) clamp(20px, 7.5vw, 32px);
+}
+.pave button {
+  width: var(--k); height: var(--k); border-radius: 50%; color: #fff;
+  font-size: calc(var(--k) * .42); font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: 0;
+  background: #ffffff12; border: 1px solid #ffffff26; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  transition: background .2s, opacity .2s;
+}
+.pave button:active:not(:disabled) { transform: none; background: #ffffff40; transition: none; }
+.pave .pave-lien { background: none; border: 0; backdrop-filter: none; -webkit-backdrop-filter: none; font-size: 14px; font-weight: 800; color: #e6fff8d1; }
+.pave .pave-lien svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.pave .pave-lien:active { background: none; opacity: .6; }
+.pave.bloque button[data-c] { opacity: .3; }
+
+/* ---------- La nébuleuse des pensées ---------- */
+body.neb-ouverte { overflow: hidden; }
+.nebuleuse { position: fixed; inset: 0; z-index: 55; }
+.nebuleuse[hidden] { display: none; }
+.neb-voile { position: absolute; inset: 0; background: #070104c4; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+.neb-fenetre {
+  position: absolute; left: 8px; right: 8px; top: calc(env(safe-area-inset-top) + 8px); bottom: calc(env(safe-area-inset-bottom) + 8px);
+  max-width: 620px; margin: 0 auto; border-radius: 34px; overflow: hidden; color: #fff; background: #170206; isolation: isolate;
+  box-shadow: 0 0 0 1px #ff8a9445, 0 0 54px -8px #ff2d4a73, 0 30px 80px -20px #000;
+}
+.neb-fenetre::after {
+  content: ""; position: absolute; inset: 0; z-index: 8; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 1px #ffb3ba38, inset 0 0 46px #ff2d4a47;
+}
+.neb-fond { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+.neb-gaz { position: absolute; inset: -18%; background: url(images/nebuleuse.webp) center / cover no-repeat; will-change: transform; animation: neb-derive 48s ease-in-out infinite alternate; }
+.neb-gaz.b { opacity: .4; mix-blend-mode: screen; animation: neb-derive-2 66s ease-in-out infinite alternate; }
+@keyframes neb-derive { from { transform: scale(1.04) translate(-2%, -1%) rotate(0deg); } to { transform: scale(1.17) translate(2.5%, 1.5%) rotate(3deg); } }
+@keyframes neb-derive-2 { from { transform: rotate(180deg) scale(1.14) translate(2%, 0); } to { transform: rotate(187deg) scale(1.02) translate(-2%, 2%); } }
+.neb-lueur {
+  position: absolute; inset: 0;
+  background: radial-gradient(60% 40% at 72% 20%, #ff4d5a38, transparent 70%), radial-gradient(55% 40% at 22% 80%, #ff6a4a30, transparent 70%),
+              linear-gradient(180deg, #12010466, transparent 18%, transparent 80%, #12010488);
+  animation: j-lueur 7s ease-in-out infinite alternate;
+}
+.nebuleuse.cache-anim .neb-gaz, .nebuleuse.cache-anim .neb-lueur { animation-play-state: paused; }
+
+.neb-tete { position: absolute; z-index: 5; top: 0; left: 0; right: 0; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; padding: 12px 12px 0; }
+.neb-bouton {
+  justify-self: start; padding: 9px 15px; border-radius: 999px; font-size: 15px; font-weight: 700; color: #fff;
+  background: #ffffff1c; border: 1px solid #ffffff2e; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.neb-bouton.droite { justify-self: end; }
+.neb-bouton.rond { justify-self: end; width: 40px; height: 40px; padding: 0; display: grid; place-items: center; }
+.neb-bouton svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
+.neb-titre { text-align: center; min-width: 0; }
+.neb-titre b { display: block; font-family: "Instrument", Georgia, serif; font-style: italic; font-weight: 400; font-size: 27px; line-height: 1; text-shadow: 0 0 20px #ff4d6d99; }
+.neb-titre small { display: block; margin-top: 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; color: #ffd6dbb8; white-space: nowrap; }
+
+.arene { position: absolute; z-index: 1; left: 0; right: 0; top: 66px; bottom: 86px; touch-action: none; transition: opacity .45s; }
+.neb-fenetre.ecrit .arene { opacity: .28; pointer-events: none; }
+.neb-fenetre.liste .arene { opacity: 0; pointer-events: none; }
+.neb-fenetre.ecrit .arene-vide { opacity: 0; }
+.arene-vide {
+  position: absolute; left: 24px; right: 24px; top: 38%; transform: translateY(-50%); text-align: center; margin: 0;
+  font-family: "Instrument", Georgia, serif; font-style: italic; font-size: 25px; line-height: 1.2; color: #ffe9ecd9; text-shadow: 0 2px 16px #000a;
+}
+.arene-vide small { display: block; margin-top: 10px; font-family: "Jakarta", system-ui, sans-serif; font-style: normal; font-size: 13.5px; font-weight: 600; color: #ffd6dbb3; }
+
+/* Une bulle : film de savon irisé, reflet, et la pensée qui tourbillonne à l'intérieur */
+.capsule {
+  position: absolute; left: 0; top: 0; width: var(--d); height: var(--d); margin: calc(var(--d) / -2) 0 0 calc(var(--d) / -2);
+  border-radius: 50%; will-change: transform, opacity; touch-action: none; outline: none; cursor: grab;
+}
+.capsule-corps {
+  position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 56%, hsl(var(--h) 100% 78% / .16) 70%, hsl(var(--h) 100% 86% / .5) 94%, hsl(var(--h) 100% 94% / .75) 100%),
+    radial-gradient(circle at 36% 30%, hsl(var(--h) 95% 78% / .2), hsl(var(--h) 85% 50% / .07) 62%);
+  box-shadow: 0 0 20px hsl(var(--h) 100% 66% / .32), inset 0 0 14px hsl(var(--h) 100% 86% / .28);
+  transition: scale .3s var(--ressort);
+}
+.capsule-corps::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 0deg, #ff9bb5, #ffd38a, #b8ffd9, #9cc8ff, #d9a6ff, #ff9bb5);
+  -webkit-mask: radial-gradient(circle closest-side, transparent 74%, #000 90%, #000 97%, transparent 100%);
+  mask: radial-gradient(circle closest-side, transparent 74%, #000 90%, #000 97%, transparent 100%);
+  opacity: .5; mix-blend-mode: screen; animation: tourne 16s linear infinite;
+}
+.capsule-corps::after {
+  content: ""; position: absolute; left: 17%; top: 11%; width: 36%; height: 23%; border-radius: 50%; transform: rotate(-32deg);
+  background: radial-gradient(ellipse at 50% 60%, #fff 0, #ffffffb8 32%, #fff0 70%);
+}
+.capsule-ame {
+  position: absolute; inset: 24%; border-radius: 50%;
+  background: conic-gradient(from 0deg, #ff2d4a00, #ff4d5e 18%, #ff2d4a00 36%, #ffb08a 58%, #ff2d4a00 76%, #ff6f86 90%, #ff2d4a00);
+  -webkit-mask: radial-gradient(circle closest-side, #000 24%, #0000 100%);
+  mask: radial-gradient(circle closest-side, #000 24%, #0000 100%);
+  opacity: .9; animation: tourne var(--v, 7s) linear infinite;
+}
+.capsule-ame::after { content: ""; position: absolute; inset: 34%; border-radius: 50%; background: radial-gradient(circle, #fff3ef, #ff8a9a00 70%); opacity: .8; }
+@keyframes tourne { to { transform: rotate(360deg); } }
+.capsule.loin .capsule-corps::before, .capsule.loin .capsule-ame { animation: none; }
+.capsule.tenue { cursor: grabbing; }
+.capsule.tenue .capsule-corps { scale: 1.1; }
+.capsule:focus-visible .capsule-corps { box-shadow: 0 0 0 3px #fff, 0 0 20px hsl(var(--h) 100% 66% / .5); }
+.capsule.ouverte { visibility: hidden; }
+.capsule-corps.nait { animation: bulle-nait 1s var(--ressort) both; }
+@keyframes bulle-nait { 0% { transform: scale(0); opacity: 0; } 55% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); } }
+.capsule-corps.revient { animation: bulle-revient .5s var(--ressort) both; }
+@keyframes bulle-revient { from { transform: scale(.6); opacity: .3; } }
+.onde-bulle { position: absolute; z-index: 4; border-radius: 50%; pointer-events: none; border: 2px solid #ffd0d8; box-shadow: 0 0 22px #ff6d8a, inset 0 0 18px #ff6d8a; }
+
+/* Écrire : une pilule en bas, une carte en haut quand on écrit (le clavier ne cache rien) */
+.ecriture { position: absolute; z-index: 4; inset: 0; pointer-events: none; }
+.pilule-ecrire {
+  pointer-events: auto; position: absolute; left: 14px; right: 14px; bottom: 14px; min-height: 58px; border-radius: 22px;
+  display: flex; align-items: center; gap: 10px; padding: 0 18px; font-size: 16px; font-weight: 700; color: #ffe3e6; text-align: left;
+  background: #2b0711b8; border: 1px solid #ff9aa64f; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px -10px #000c, inset 0 1px 0 #ffffff17; transition: opacity .3s, transform .3s var(--doux-sortie);
+}
+.pilule-ecrire svg { width: 20px; height: 20px; flex: none; fill: none; stroke: #ff8fa3; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
+.pilule-ecrire[hidden] { display: none; }
+.neb-fenetre.liste .pilule-ecrire { opacity: 0; pointer-events: none; transform: translateY(10px); }
+.carte-ecriture {
+  pointer-events: auto; position: absolute; left: 10px; right: 10px; top: 64px; padding: 14px 14px 12px; border-radius: 28px;
+  background: #22040bd6; border: 1px solid #ff9aa647; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 24px 60px -24px #000, inset 0 1px 0 #ffffff14; animation: carte-entre .45s var(--doux-sortie) both;
+}
+.carte-ecriture[hidden] { display: none; }
+@keyframes carte-entre { from { opacity: 0; transform: translateY(18px) scale(.97); } }
+.invite-pensee { margin: 2px 4px 11px; font-family: "Instrument", Georgia, serif; font-style: italic; font-size: 31px; line-height: 1.05; text-shadow: 0 0 22px #ff4d6d88; }
+.carte-ecriture textarea {
+  display: block; width: 100%; min-height: 118px; max-height: 42vh; resize: none; outline: none; padding: 12px 14px; border-radius: 19px;
+  font-size: 17px; line-height: 1.5; color: #fff; background: #0000003d; border: 1px solid #ffffff21;
+}
+.carte-ecriture textarea:focus { border-color: #ffb3c066; box-shadow: 0 0 0 3px #ff4d6d26; }
+.carte-ecriture textarea::placeholder { color: #ffd6dc85; }
+.carte-ecriture textarea.disparait { color: transparent; transition: color .15s; }
+.ecriture-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 12px; }
+.ecriture-actions .neb-bouton { background: #ffffff12; }
+.bouton-bulle {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 20px; border-radius: 999px;
+  font-size: 16px; font-weight: 800; color: #3d0716; background: linear-gradient(180deg, #ffffff, #ffe1e7);
+  box-shadow: 0 10px 26px -8px #ff4d6dd9, inset 0 -2px 0 #ffc4ce; transition: opacity .25s, box-shadow .25s, transform .25s var(--ressort);
+}
+.bouton-bulle svg { width: 20px; height: 20px; flex: none; }
+.bouton-bulle:disabled { opacity: .42; box-shadow: none; cursor: default; }
+.brouillon { margin: 8px 4px 0; font-size: 12.5px; font-weight: 700; color: #ffd6dcb3; }
+.brouillon[hidden] { display: none; }
+
+.fantome {
+  position: absolute; z-index: 6; margin: 0; padding: 12px 14px; font-size: 17px; line-height: 1.5; color: #fff; white-space: pre-wrap;
+  overflow: hidden; overflow-wrap: anywhere; pointer-events: none; text-shadow: 0 0 12px #ff8fa3; will-change: transform, opacity, filter;
+}
+.grain-rouge { position: absolute; top: 0; left: 0; z-index: 6; width: 5px; height: 5px; margin: -2.5px; border-radius: 50%; background: #ffe3e8; box-shadow: 0 0 8px 2px #ff6d8a; pointer-events: none; }
+
+.murmure {
+  position: absolute; z-index: 3; left: 22px; right: 22px; top: 76px; margin: 0; text-align: center; pointer-events: none;
+  font-family: "Instrument", Georgia, serif; font-style: italic; font-size: 24px; line-height: 1.15; color: #fff;
+  text-shadow: 0 0 18px #ff4d6d, 0 2px 12px #000b; opacity: 0;
+}
+.murmure.visible { animation: murmure 3.8s var(--doux-sortie) both; }
+@keyframes murmure {
+  0% { opacity: 0; transform: translateY(8px); filter: blur(4px); }
+  14%, 76% { opacity: 1; transform: none; filter: blur(0); }
+  100% { opacity: 0; transform: translateY(-6px); filter: blur(3px); }
+}
+
+.eclat-neb { position: absolute; top: 0; left: 0; z-index: 6; pointer-events: none; will-change: transform, opacity; }
+.eclat-neb svg { display: block; width: 100%; height: 100%; }
+
+/* Lire une pensée */
+.lecture {
+  position: absolute; inset: 0; z-index: 7; display: grid; place-items: center; padding: 72px 14px 26px;
+  background: #12020773; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
+.lecture[hidden] { display: none; }
+.carte-lecture {
+  width: 100%; max-height: 100%; display: flex; flex-direction: column; padding: 20px 18px 14px; border-radius: 30px;
+  background: radial-gradient(130% 90% at 25% 0%, #66122ae6, #2a050ded 72%); border: 1px solid #ffb3c04a;
+  box-shadow: 0 30px 70px -20px #000, inset 0 1px 0 #ffffff21, 0 0 60px -18px #ff4d6d;
+}
+.lecture-date { margin: 0 0 10px; font-size: 11.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #ffc9d1bd; }
+.lecture-texte { min-height: 54px; overflow-y: auto; font-size: 18px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; color: #fff7f8; -webkit-overflow-scrolling: touch; }
+.lecture-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 16px; }
+.lecture-actions .neb-bouton { background: #ffffff10; font-size: 14px; }
+
+/* Les pensées en liste */
+.neb-liste {
+  position: absolute; z-index: 2; left: 0; right: 0; top: 66px; bottom: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 6px 14px 96px; display: grid; gap: 10px; align-content: start;
+}
+.neb-liste[hidden] { display: none; }
+.item-pensee {
+  display: flex; gap: 12px; align-items: flex-start; width: 100%; padding: 12px 14px; border-radius: 20px; text-align: left; color: #fff;
+  background: #2b0711b8; border: 1px solid #ff9aa63b; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  animation: chip-in .4s var(--ressort) both;
+}
+.item-pensee .mini-bulle { width: 26px; height: 26px; margin-top: 2px; }
+.item-pensee .txt { flex: 1; min-width: 0; }
+.item-pensee .d { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #ffc9d1ad; }
+.item-pensee p { margin: 4px 0 0; font-size: 15px; line-height: 1.42; white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.liste-vide { margin: 30px 10px; text-align: center; color: #ffd6dbc2; font-weight: 600; }
+
+/* Lumière qui nourrit la pousse */
+.grain-lumiere { position: fixed; top: 0; left: 0; z-index: 46; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: #f4ffd6; box-shadow: 0 0 8px 3px #c8ffb0b3, 0 0 18px 6px #9dffd033; pointer-events: none; will-change: transform, opacity; }
+.onde-dome { position: fixed; z-index: 45; pointer-events: none; border-radius: 50%; border: 2px solid #c8fff0; box-shadow: 0 0 22px #7dfbe6, inset 0 0 22px #7dfbe6; }
+
+@media (max-height: 700px) {
+  .scene-jardin { min-height: 104px; }
+  .pave { --k: clamp(50px, 7.9vh, 74px); row-gap: 8px; }
+  .points { margin: 10px 0 6px; }
+  .code-msg { margin-bottom: 6px; }
+  .stade { font-size: 36px; }
+  .phrase-jardin { display: none; }
+  .accueil-code p.discret { display: none; }
+  .invite-pensee { font-size: 26px; margin-bottom: 8px; }
+  .carte-ecriture textarea { min-height: 96px; }
+}
