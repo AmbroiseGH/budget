@@ -41,6 +41,12 @@
   const CLE_OAUTH = "drive.oauth";            // connexion en cours (le temps de l'aller-retour chez Google)
   const PORTEE = "https://www.googleapis.com/auth/drive.file";
   const GUIDE = "https://github.com/AmbroiseGH/budget/blob/main/GOOGLE-DRIVE.md";
+  // Identifiant Google Cloud du projet « Mes applications » (l'ID client est public par nature).
+  const CLIENT_ID = "418112090148-dab0qaeu0osm79io7s785mpuq9a04cip.apps.googleusercontent.com";
+  // Code secret ajouté à la demande de Frank (2026-11-21). Une app web sans serveur ne peut pas le cacher ;
+  // Google ne renvoie la connexion qu'aux adresses autorisées (ambroisegh.github.io/budget/…).
+  // Pour le changer : console Google Cloud → Clients → Apps iPhone → nouveau code secret.
+  const SECRET = "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";
   const PAUSE_ESSAI = 10 * 60 * 1000;         // après un échec, on réessaie au plus toutes les 10 min
 
   /* ---------- Stockage local ---------- */
@@ -129,7 +135,14 @@
     const q = new URLSearchParams(location.search);
     if (!q.has("state") || !(q.has("code") || q.has("error"))) return;
     const attendu = lire(CLE_OAUTH);
-    if (!attendu || attendu.etat !== q.get("state")) return;
+    if (!attendu || attendu.etat !== q.get("state")) {
+      if (!q.has("code") && !q.has("error")) return;
+      history.replaceState(history.state, "", location.pathname + location.hash);
+      retourOAuth = Promise.resolve(autonome()
+        ? "La connexion n'a pas abouti (la réponse de Google n'a pas été reconnue). Réessaie."
+        : "Google t'a renvoyé dans Safari au lieu de l'app. Ouvre l'app depuis l'écran d'accueil et réessaie.");
+      return;
+    }
     effacer(CLE_OAUTH);
     // Nettoie l'adresse tout de suite (le code ne sert qu'une fois).
     history.replaceState(history.state, "", location.pathname + location.hash);
@@ -341,7 +354,8 @@
 .sgd button:disabled{opacity:.55}
 .sgd a{color:var(--sgd-accent);font-weight:600}
 .sgd a.sgd-bouton{display:block;text-align:center;text-decoration:none;font-weight:700;border-radius:16px;padding:14px;margin-top:10px;background:var(--sgd-champ);color:var(--sgd-texte)}
-.sgd .sgd-note{font-size:.8rem;margin-top:14px}
+.sgd .sgd-note{font-size:.8rem;margin-top:14px;color:var(--sgd-doux)}
+.sgd summary{cursor:pointer;font-weight:600}
 .sgd .sgd-msg{min-height:1.2em;margin:10px 0 0;font-size:.9rem;font-weight:600;color:var(--sgd-texte)}
 .sgd .sgd-msg.erreur{color:var(--sgd-alerte)}
 .sgd-bandeau{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:2147482999;background:#2b2b33;color:#fff;font:inherit;font-size:.9rem;font-weight:600;padding:10px 16px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.25);border:0;max-width:calc(100vw - 32px)}`;
@@ -390,26 +404,30 @@
   function ecranConfiguration(info) {
     const anc = lire(CLE_CONFIG) || {};
     const champ = (type, valeur, place, nom) => h("input", { type, value: valeur || "", placeholder: place, autocapitalize: "off", autocorrect: "off", spellcheck: "false", autocomplete: "off", "aria-label": nom });
-    const id = champ("text", anc.clientId, "123…apps.googleusercontent.com", "ID client");
-    const secret = champ("password", anc.secret, "GOCSPX-…", "Code secret du client");
+    const perso = !!(anc.clientId && anc.clientId !== CLIENT_ID);
+    const id = champ("text", perso ? anc.clientId : "", CLIENT_ID.slice(0, 16) + "…", "ID client");
+    const secret = champ("password", anc.secret || "", "GOCSPX-…", "Code secret du client");
     const m = msg();
     if (info) dire(m, info, !/✓/.test(info));
     const btn = h("button", { class: "sgd-principal", onclick: () => occupe(btn, "Ouverture de Google…", async () => {
-      const cId = id.value.trim(), cS = secret.value.trim();
+      const cId = id.value.trim() || CLIENT_ID;
+      const cS = cId === CLIENT_ID && SECRET ? SECRET : secret.value.trim().replace(/^"|"$/g, "");
       if (!/\.apps\.googleusercontent\.com$/.test(cId)) return dire(m, "L'ID client se termine par « .apps.googleusercontent.com ».", true);
-      if (!cS) return dire(m, "Colle le code secret du client.", true);
+      if (!cS) return dire(m, "Colle le code secret du client (il commence par GOCSPX-).", true);
       try { await connecter(cId, cS); } catch (e) { dire(m, e.message, true); }
     }) }, "Se connecter à Google");
     afficher(
       h("h3", {}, "☁️ Sauvegarde Google Drive"),
       h("p", {}, `Chaque jour, ${NOM} enregistre une copie de ses données dans ton Google Drive (${chemin()}), en remplaçant celle de la veille. Tes données restent aussi sur cet appareil.`),
-      h("label", {}, "ID client"), id,
-      h("label", {}, "Code secret du client"), secret,
+      SECRET ? null : [h("label", {}, "Code secret du client"), secret],
       m, btn,
-      h("p", { class: "sgd-note" }, "Ces deux codes viennent de ta console Google Cloud (5 minutes, une seule fois). ",
-        h("a", { href: GUIDE, target: "_blank", rel: "noopener" }, "Voir le guide pas à pas")),
-      h("p", { class: "sgd-note" }, "Adresse de retour à autoriser pour cette app :"),
-      h("code", {}, retour()),
+      h("p", { class: "sgd-note" }, "Choisis ton compte Google puis touche « Continuer ». Tu reviens ensuite ici et la première sauvegarde part tout de suite."),
+      h("details", { class: "sgd-note", open: perso || null },
+        h("summary", {}, "Utiliser un autre identifiant Google"),
+        h("label", {}, "ID client"), id,
+        SECRET ? [h("label", {}, "Code secret du client"), secret] : null,
+        h("p", { class: "sgd-note" }, "Adresse de retour à autoriser pour cette app :"),
+        h("code", {}, retour())),
       h("button", { onclick: fermer }, "Fermer"),
     );
   }
