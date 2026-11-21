@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Journal</title>
-  <meta name="description" content="Journal d'humeur : note ta journée, de la lune de sang au soleil radieux.">
+  <meta name="description" content="Journal d'humeur : note ta journée, de la lune de sang au soleil radieux, et dépose tes pensées dans ton jardin secret.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Journal">
@@ -16,6 +16,7 @@
   <link rel="preload" href="fonts/instrument-italique.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/jakarta-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="jardin.css">
 </head>
 <body class="sur-jour">
   <!-- Le ciel, qui change avec l'humeur -->
@@ -25,6 +26,13 @@
     <div id="poussiere" class="poussiere"></div>
   </div>
   <div class="voile-page" aria-hidden="true"></div>
+  <!-- La nuit du jardin secret -->
+  <div id="fond-jardin" class="fond-jardin" aria-hidden="true">
+    <div class="fj-ciel"></div>
+    <div class="fj-aurore"><i></i><i></i><i></i></div>
+    <div id="fj-etoiles" class="fj-etoiles"></div>
+    <div id="fj-lucioles" class="fj-lucioles"></div>
+  </div>
   <div class="bande-statut" aria-hidden="true"></div>
 
   <main>
@@ -65,12 +73,61 @@
       </div>
     </section>
 
-    <!-- JOURNAL -->
+    <!-- JOURNAL SECRET : la pousse sous son dôme, protégée par un code -->
+    <section id="jardin" class="onglet verrouille" aria-labelledby="titre-jardin">
+      <header class="tete tete-flex tete-jardin">
+        <div>
+          <p class="sur-titre">Ton jardin intérieur</p>
+          <h1 id="titre-jardin">Journal</h1>
+        </div>
+        <div class="boutons-jardin">
+          <button id="jardin-verrou" class="rond-jardin" aria-label="Verrouiller le journal" hidden><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
+          <button id="jardin-reglages" class="rond-jardin" aria-label="Réglages du journal secret" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.8 7.8 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.6 7.6 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.8 7.8 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4 1 2-3.4z"/></svg></button>
+        </div>
+      </header>
+
+      <div class="scene-jardin">
+        <div id="dome-jardin" class="dome-jardin embrume" role="img" aria-label="Ta pousse, protégée par un dôme d'énergie"></div>
+      </div>
+
+      <!-- Le jardin ouvert -->
+      <div id="ui-jardin" class="ui-jardin" hidden>
+        <p id="stade" class="stade">Pousse</p>
+        <p id="compte-jardin" class="compte-jardin"></p>
+        <p id="phrase-jardin" class="phrase-jardin" aria-live="polite"></p>
+        <button id="ecrire" class="bouton-ecrire"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20z"/><path d="M13.5 7.5l3 3"/></svg>Écrire</button>
+        <button id="revoir" class="lien-revoir" hidden><span class="mini-bulle" aria-hidden="true"></span><span id="revoir-nb"></span></button>
+      </div>
+
+      <!-- Le code à 6 chiffres -->
+      <div id="ui-code" class="ui-code">
+        <div id="accueil-code" class="accueil-code" hidden>
+          <h2>Un jardin rien qu'à toi</h2>
+          <p>Ici, tu déposes ce qui te pèse. Chaque pensée est enfermée dans une bulle, loin de ton esprit, et ta pousse grandit un peu.</p>
+          <p class="discret">Un code à 6 chiffres protège ce jardin. Choisis-le bien : il ne pourra pas être récupéré.</p>
+          <button id="choisir-code" class="bouton-ecrire">Choisir mon code</button>
+        </div>
+        <div id="saisie-code" class="saisie-code">
+          <p id="code-titre" class="code-titre">Entre ton code</p>
+          <p id="code-sous" class="code-sous">pour retrouver ton jardin</p>
+          <div id="points" class="points" role="img" aria-label="0 chiffre sur 6"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <p id="code-msg" class="code-msg" role="status" aria-live="polite"></p>
+          <div id="pave" class="pave" role="group" aria-label="Clavier du code">
+            <button data-c="1">1</button><button data-c="2">2</button><button data-c="3">3</button><button data-c="4">4</button><button data-c="5">5</button><button data-c="6">6</button><button data-c="7">7</button><button data-c="8">8</button><button data-c="9">9</button>
+            <button id="code-autre" class="pave-lien">Oublié ?</button>
+            <button data-c="0">0</button>
+            <button id="code-effacer" class="pave-lien" aria-label="Effacer un chiffre"><svg viewBox="0 0 24 24"><path d="M9.2 5.5H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9.2L3.5 12z"/><path d="M12.6 9.6l4.8 4.8M17.4 9.6l-4.8 4.8"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CALENDRIER -->
     <section id="journal" class="onglet" aria-labelledby="titre-journal">
       <header class="tete tete-flex">
         <div>
           <p class="sur-titre">Tes journées</p>
-          <h1 id="titre-journal">Journal</h1>
+          <h1 id="titre-journal">Calendrier</h1>
         </div>
         <button id="ouvrir-reglages" class="rond-page" aria-label="Réglages et sauvegarde">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.8 7.8 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.6 7.6 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.8 7.8 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4 1 2-3.4z"/></svg>
@@ -144,8 +201,11 @@
     <button role="tab" data-onglet="aujourdhui" class="actif" aria-selected="true">
       <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>Aujourd'hui
     </button>
+    <button role="tab" data-onglet="jardin" aria-selected="false">
+      <svg viewBox="0 0 24 24"><path d="M11.1 21v-8.5h1.8V21z"/><path d="M11.6 13.6C7.4 13.9 4.4 11.4 4 6.9c4.3-.4 7.4 2 7.6 6.7z"/><path d="M12.4 11.4C12.3 6.2 15.3 3.2 20.4 3c.1 5-3 8.1-8 8.4z"/></svg>Journal
+    </button>
     <button role="tab" data-onglet="journal" aria-selected="false">
-      <svg viewBox="0 0 24 24"><path d="M7 3h10a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zm1 5v2h8V8zm0 4v2h8v-2zm0 4v2h5v-2z"/></svg>Journal
+      <svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M8 2.5a1 1 0 0 1 1 1V4h6v-.5a1 1 0 1 1 2 0V4h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1v-.5a1 1 0 0 1 1-1zM5 10v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8zm2.5 2h3v3h-3z"/></svg>Calendrier
     </button>
     <button role="tab" data-onglet="bilan" aria-selected="false">
       <svg viewBox="0 0 24 24"><path d="M3 17.5l5.2-6 4 3.6L21 5.5v4l-8.6 9-4-3.6L3 21z"/></svg>Bilan
@@ -167,6 +227,44 @@
     </div>
   </div>
 
+  <!-- La nébuleuse rouge : les pensées qui préoccupent, chacune dans sa bulle -->
+  <div id="nebuleuse" class="nebuleuse" hidden>
+    <div class="neb-voile" aria-hidden="true"></div>
+    <div id="neb-fenetre" class="neb-fenetre" role="dialog" aria-modal="true" aria-labelledby="neb-titre">
+      <div class="neb-fond" aria-hidden="true"><div class="neb-gaz a"></div><div class="neb-gaz b"></div><div class="neb-lueur"></div></div>
+      <header class="neb-tete">
+        <button id="neb-fermer" class="neb-bouton">Fermer</button>
+        <div class="neb-titre"><b id="neb-titre">Tes pensées</b><small id="neb-compte"></small></div>
+        <button id="neb-vue" class="neb-bouton rond" aria-label="Voir en liste"></button>
+      </header>
+      <div id="arene" class="arene" role="group" aria-label="Tes pensées, chacune dans sa bulle"></div>
+      <div id="neb-liste" class="neb-liste" hidden></div>
+      <p id="murmure" class="murmure" aria-live="polite"></p>
+      <div class="ecriture">
+        <button id="ouvrir-ecriture" class="pilule-ecrire"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20z"/><path d="M13.5 7.5l3 3"/></svg>Écrire ce qui te pèse…</button>
+        <div id="carte-ecriture" class="carte-ecriture" hidden>
+          <p id="invite-pensee" class="invite-pensee"></p>
+          <textarea id="texte-pensee" rows="5" maxlength="20000" aria-labelledby="invite-pensee" placeholder="Écris tout ce que tu as sur le cœur. Une fois encapsulée, ta pensée flottera loin de toi."></textarea>
+          <p id="brouillon" class="brouillon" hidden>Ton brouillon t'attendait.</p>
+          <div class="ecriture-actions">
+            <button id="annuler-pensee" class="neb-bouton">Plus tard</button>
+            <button id="encapsuler" class="bouton-bulle" disabled><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#d81f45" stroke-width="2.1" stroke-linecap="round"><circle cx="12" cy="12" r="8.6"/><path d="M7.6 10.4a4.8 4.8 0 0 1 3.2-3.1"/><circle cx="15.6" cy="15.4" r="1.1" fill="#d81f45" stroke="none"/></svg>Encapsuler</button>
+          </div>
+        </div>
+      </div>
+      <div id="lecture" class="lecture" hidden>
+        <div id="carte-lecture" class="carte-lecture" role="document">
+          <p id="lecture-date" class="lecture-date"></p>
+          <div id="lecture-texte" class="lecture-texte" tabindex="0"></div>
+          <div class="lecture-actions">
+            <button id="lecture-partir" class="neb-bouton">Laisser partir</button>
+            <button id="lecture-fermer" class="bouton-bulle">Refermer la bulle</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Feuille du bas -->
   <div id="feuille" class="feuille" hidden>
     <div class="voile" data-fermer></div>
@@ -179,5 +277,7 @@
   <script src="astres.js"></script>
   <script src="drive.js" data-app="journal" data-nom="Journal" data-cle="journal.v1" data-dossier="journal" data-requis="jours" data-unite="journée"></script>
   <script src="app.js"></script>
+  <script src="jardin.js"></script>
+  <script src="pensees.js"></script>
 </body>
 </html>

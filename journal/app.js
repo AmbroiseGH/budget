@@ -19,11 +19,39 @@ function nettoyer(jours) {
   return propre;
 }
 function charger() {
-  try {
-    const d = JSON.parse(localStorage.getItem(CLE));
-    if (valide(d)) return { jours: nettoyer(d.jours), sons: d.sons !== false };
-  } catch (e) {}
-  return { jours: {}, sons: true };
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(CLE)); } catch (e) {}
+  const base = valide(d) ? { jours: nettoyer(d.jours), sons: d.sons !== false } : { jours: {}, sons: true };
+  return garderSecret(base, d);
+}
+// Le journal secret (chiffré par pensees.js) est gardé tel quel, avec ses anciens coffres.
+// garderSecret(cible, source) ajoute à cible le coffre de source sans jamais rien perdre :
+// même coffre, la version la plus récente gagne ; coffre différent, il est rangé dans les archives.
+const secretValide = (s) => !!s && typeof s === "object" && ["sel", "iv", "data"].every((k) => typeof s[k] === "string");
+function garderSecret(cible, source) {
+  if (!source || typeof source !== "object") return cible;
+  const archives = (Array.isArray(cible.secretArchives) ? cible.secretArchives : []).filter(secretValide);
+  const recent = (a, b) => ((Number(b.maj) || 0) > (Number(a.maj) || 0) ? b : a);
+  const ranger = (s) => {
+    if (!secretValide(s) || cible.secret?.sel === s.sel) return;
+    const i = archives.findIndex((a) => a.sel === s.sel);
+    if (i < 0) archives.push({ ...s, archive: Number(s.archive) || Date.now() });
+    else archives[i] = recent(archives[i], s);
+  };
+  const s = source.secret;
+  if (secretValide(s)) {
+    if (!secretValide(cible.secret)) cible.secret = { ...s };
+    else {
+      const n = Math.max(Number(s.n) || 0, Number(cible.secret.n) || 0);
+      if (cible.secret.sel === s.sel) cible.secret = { ...recent(cible.secret, s) };
+      else ranger(s);
+      cible.secret.n = n;
+    }
+  }
+  if (Array.isArray(source.secretArchives)) source.secretArchives.forEach(ranger);
+  const restantes = archives.filter((a) => a.sel !== cible.secret?.sel);
+  if (restantes.length) cible.secretArchives = restantes; else delete cible.secretArchives;
+  return cible;
 }
 let donnees = charger();
 function sauver() {
@@ -1007,9 +1035,11 @@ $("fichier").addEventListener("change", async (ev) => {
     const d = JSON.parse(await f.text());
     if (!valide(d)) throw new Error("format");
     const n = Object.keys(d.jours).length;
-    if (!confirm(`Remplacer ton journal par celui du fichier ?\n${pluriel(n, "journée")}`)) return;
-    donnees = { jours: nettoyer(d.jours), sons: d.sons !== false };
+    if (!confirm(`Remplacer ton journal par celui du fichier ?\n${pluriel(n, "journée")}\nTes pensées secrètes sont toujours gardées.`)) return;
+    // Le journal secret de ce téléphone n'est jamais perdu : gardé, ou rangé dans les archives
+    donnees = garderSecret(garderSecret({ jours: nettoyer(d.jours), sons: d.sons !== false }, d), donnees);
     sauver(); fermerFeuille(); toutRendre();
+    document.dispatchEvent(new CustomEvent("journal-importe"));
     toast(`Importé · ${pluriel(n, "journée")}`);
   } catch (e) {
     toast("Ce fichier n'est pas une sauvegarde du Journal", { icone: "!" });
@@ -1051,6 +1081,7 @@ function changerOnglet(nom) {
   if (nom === "aujourdhui") { mesurer(); placer(valeur); }
   if (nom === "journal") rendreJournal();
   if (nom === "bilan") rendreBilan();
+  document.dispatchEvent(new CustomEvent("onglet", { detail: nom }));
 }
 document.querySelectorAll(".tabbar button").forEach((b) => b.addEventListener("click", () => changerOnglet(b.dataset.onglet)));
 
