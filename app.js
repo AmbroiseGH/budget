@@ -622,6 +622,7 @@ function afficherHistorique() {
   }));
 }
 
+$("google-drive").addEventListener("click", () => window.Drive?.ouvrir());
 $("exporter").addEventListener("click", async () => {
   const nom = `budget-${new Date().toISOString().slice(0, 10)}.json`;
   const fichier = new File([JSON.stringify(donnees, null, 2)], nom, { type: "application/json" });
