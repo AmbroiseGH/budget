@@ -160,7 +160,8 @@
       <div id="historique-liste"></div>
       <div class="carte">
         <h2>Sauvegarde</h2>
-        <p class="aide">Tes données restent sur ce téléphone. Exporte-les de temps en temps pour ne rien perdre.</p>
+        <p class="aide">Tes données restent sur ce téléphone. Active Google Drive pour en garder une copie chaque jour.</p>
+        <button id="google-drive" class="secondaire large" style="margin-bottom:10px">☁️ Sauvegarde Google Drive</button>
         <div class="boutons">
           <button id="exporter" class="secondaire">Exporter</button>
           <button id="importer" class="secondaire">Importer</button>
@@ -203,6 +204,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <script src="drive.js" data-app="budget" data-nom="Budget" data-cle="budget.v1" data-dossier="budget" data-requis="mouvements" data-unite="mouvement"></script>
   <script src="app.js"></script>
 </body>
 </html>

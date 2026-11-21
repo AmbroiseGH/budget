@@ -981,9 +981,10 @@ function ouvrirReglages() {
     el("h3", {}, "Réglages"),
     el("p", { class: "sous" }, nb ? `${pluriel(nb, "journée")} dans ton journal` : "Ton journal est encore vide"),
     sons,
+    el("button", { class: "reglage", onclick: () => window.Drive?.ouvrir() }, el("span", { class: "ico" }, "☁️"), el("span", { class: "t" }, "Sauvegarde Google Drive", el("small", {}, "Une copie chaque jour dans ton Drive"))),
     el("button", { class: "reglage", onclick: exporter }, el("span", { class: "ico" }, "📤"), el("span", { class: "t" }, "Exporter mon journal", el("small", {}, "Une copie de sauvegarde à garder"))),
     el("button", { class: "reglage", onclick: () => $("fichier").click() }, el("span", { class: "ico" }, "📥"), el("span", { class: "t" }, "Importer une sauvegarde", el("small", {}, "Remplace le journal de ce téléphone"))),
-    el("p", { class: "petit-texte" }, "Ton journal reste uniquement sur ce téléphone (aucun compte, aucun serveur). Pense à l'exporter de temps en temps. Scintillement : « Distant Star Sparkle », Soundza (soundza.com)."),
+    el("p", { class: "petit-texte" }, "Ton journal reste sur ce téléphone. Si tu actives Google Drive, une copie y est rangée chaque jour, rien d'autre. Scintillement : « Distant Star Sparkle », Soundza (soundza.com)."),
   );
 }
 $("ouvrir-reglages").addEventListener("click", ouvrirReglages);

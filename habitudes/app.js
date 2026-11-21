@@ -428,6 +428,7 @@ function ouvrirGestion() {
     form, gestion,
     el("button", { class: "principal", onclick: fermerFeuille }, "Terminé"),
     el("p", { class: "titre-groupe" }, "Sauvegarde"),
+    el("button", { class: "secondaire", onclick: () => window.Drive?.ouvrir() }, "☁️ Sauvegarde Google Drive"),
     el("div", { class: "duo" },
       el("button", { class: "secondaire", onclick: exporter }, "Exporter"),
       el("button", { class: "secondaire", onclick: () => $("fichier").click() }, "Importer")),

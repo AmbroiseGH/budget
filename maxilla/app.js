@@ -1031,10 +1031,11 @@ function carteReglages() {
         el("span", { class: "reglage-txt" }, el("b", {}, "Ton prénom"), el("small", {}, "Pour le bonjour de l'accueil")),
         champ),
       sons,
+      lien("nuage", "Google Drive", "Une copie chaque jour dans ton Drive", () => window.Drive?.ouvrir()),
       lien("nuage", "Sauvegarde GitHub", "Envoi automatique vers ton dépôt privé", () => window.Sauvegarde?.ouvrir()),
       lien("exporter", "Exporter", "Un fichier .json de toutes tes données", () => window.Sauvegarde?.exporterFichier()),
       lien("importer", "Importer", "Recharger un fichier exporté", () => $("fichier").click())),
-    el("p", { class: "aide gauche" }, "Tes données restent sur ce téléphone. Pense à la sauvegarde GitHub ou à exporter de temps en temps."));
+    el("p", { class: "aide gauche" }, "Tes données restent sur ce téléphone. Active Google Drive pour en garder une copie chaque jour."));
 }
 
 async function importer(fichier) {
