@@ -605,6 +605,7 @@ function formulaireLigne(l) {
    Historique et sauvegarde
    ========================================================= */
 
+$("recuperer").addEventListener("click", () => window.Drive?.ouvrir());
 $("tout-voir").addEventListener("click", () => { $("historique").hidden = false; afficherHistorique(); });
 $("fermer-historique").addEventListener("click", () => { $("historique").hidden = true; });
 
