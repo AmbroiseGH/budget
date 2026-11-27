@@ -6,6 +6,21 @@ Une app ultra simple pour suivre ses revenus, ses dépenses, ses livrets et son 
 
 Aussi dans ce dépôt : la liste de **[Courses](courses/)**, à ouvrir sur https://ambroisegh.github.io/budget/courses/
 
+## Apps : toutes les applis dans une seule
+
+**Ouvrir Apps : https://ambroisegh.github.io/budget/apps/**
+
+[Apps](apps/) réunit Budget, Courses, Habitudes, Tâches, Journal, Maxilla et Salle. Sur l'accueil, chaque appli s'ouvre en un toucher ; une pastille rouge dit ce qui reste à faire (tâches du jour, habitudes non cochées, journée pas encore notée…) et un bandeau qui défile en haut le résume. La roue en haut à droite ouvre les réglages : **une seule sauvegarde Google Drive** pour toutes les applis (`applications/apps/apps.json`).
+
+Dans chaque appli ouverte depuis Apps, le bouton **‹ Apps** en haut (ou un glissé depuis le bord gauche de l'écran) ramène à l'accueil.
+
+**Passer des anciennes applis à Apps, sans rien perdre** : sur iPhone, chaque icône de l'écran d'accueil a son propre stockage, donc Apps démarre vide.
+1. Installe Apps : dans Safari, ouvre le lien ci-dessus, puis **Partager → Sur l'écran d'accueil**.
+2. Ouvre une ancienne appli depuis son icône : un bandeau propose **Transférer vers Apps** → **Copier mes données**.
+3. Dans Apps, touche la roue → **Coller les données copiées**. Recommence pour chaque appli.
+
+Ou, si l'appli avait une sauvegarde Google Drive : Apps → roue → **Se connecter à Google** → **Restaurer…**, puis **Récupérer** sur chaque ancienne sauvegarde. Les anciennes applis gardent leurs données ; ne supprime leurs icônes qu'une fois tout vérifié dans Apps (supprimer une icône efface ses données).
+
 ## L'installer sur l'iPhone
 
 1. Ouvre le lien ci-dessus dans **Safari**.
@@ -34,3 +49,4 @@ Elles restent uniquement sur ton téléphone, dans Safari (aucun compte, aucun s
 - `fonts/` : police Plus Jakarta Sans (licence OFL), hébergée avec l'app.
 - `sw.js`, `manifest.webmanifest`, `icons/` : installation sur l'écran d'accueil et mode hors ligne. Quand tu modifies un fichier, change `VERSION` dans `sw.js` pour que les téléphones récupèrent la nouvelle version.
 - `ios/` : la version native SwiftUI, à ouvrir avec Xcode (voir `ios/LISEZMOI.md`).
+- `apps/` : l'appli Apps. `applis.js` est la liste des applis (une nouvelle appli s'ajoute là), `app.js` l'accueil (pastilles, bandeau, réglages), `sauvegarde.js` la sauvegarde Google Drive commune, `pont.js` le lien inclus en bas de chaque appli (bouton « ‹ Apps », glissé depuis le bord, transfert depuis une ancienne appli). Chaque appli garde sa clé de stockage habituelle (`budget.v1`, `journal.v1`…).

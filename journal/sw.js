@@ -1,6 +1,6 @@
 // Garde l'app disponible hors ligne. Changer VERSION à chaque mise à jour des fichiers.
-const VERSION = "journal-v4";
-const FICHIERS = ["./", "index.html", "style.css", "astres.js", "app.js", "drive.js", "manifest.webmanifest",
+const VERSION = "journal-v5";
+const FICHIERS = ["./", "index.html", "style.css", "astres.js", "app.js", "drive.js", "../apps/pont.js", "manifest.webmanifest",
   "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "fonts/jakarta-500.woff2", "fonts/jakarta-600.woff2", "fonts/jakarta-700.woff2", "fonts/jakarta-800.woff2",
   "fonts/instrument-italique.woff2", "sons/etoile.mp3",

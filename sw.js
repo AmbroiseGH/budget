@@ -1,6 +1,6 @@
 // Garde l'app disponible hors ligne. Changer VERSION à chaque mise à jour des fichiers.
-const VERSION = "budget-v10";
-const FICHIERS = ["./", "index.html", "style.css", "app.js", "drive.js", "manifest.webmanifest",
+const VERSION = "budget-v11";
+const FICHIERS = ["./", "index.html", "style.css", "app.js", "drive.js", "apps/pont.js", "manifest.webmanifest",
   "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "fonts/jakarta-400.woff2", "fonts/jakarta-500.woff2", "fonts/jakarta-600.woff2", "fonts/jakarta-700.woff2", "fonts/jakarta-800.woff2"];
 
@@ -24,7 +24,7 @@ self.addEventListener("fetch", (e) => {
   const racine = new URL(self.registration.scope);
   if (url.origin !== racine.origin) return;
   const chemin = url.pathname.slice(racine.pathname.length);
-  if (chemin.includes("/") && !chemin.startsWith("icons/") && !chemin.startsWith("fonts/")) return;
+  if (chemin.includes("/") && !chemin.startsWith("icons/") && !chemin.startsWith("fonts/") && chemin !== "apps/pont.js") return;
   e.respondWith(
     // no-cache : on revérifie toujours auprès du serveur, pour recevoir les mises à jour tout de suite.
     fetch(e.request.url, { cache: "no-cache" })

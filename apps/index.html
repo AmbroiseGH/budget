@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Apps</title>
+  <meta name="description" content="Toutes mes applis au même endroit : Budget, Courses, Habitudes, Tâches, Journal, Maxilla et Salle.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Apps">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0c0c10" media="(prefers-color-scheme: dark)">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="../fonts/jakarta-800.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="lueur" aria-hidden="true"></div>
+
+  <main class="accueil">
+    <div class="haut">
+      <div id="defile" class="defile" role="marquee" aria-label="À faire aujourd'hui">
+        <div id="piste" class="piste"></div>
+      </div>
+      <button id="reglages" class="rond" type="button" aria-label="Réglages et sauvegarde">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 13.5a7.8 7.8 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.6 7.6 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.8 7.8 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4 1 2-3.4z"/></svg>
+      </button>
+    </div>
+
+    <header class="tete">
+      <p class="date"><span class="logo-mini" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span id="date"></span></p>
+      <h1 id="salut">Bonjour</h1>
+    </header>
+
+    <nav id="grille" class="grille" aria-label="Mes applis"></nav>
+
+    <section id="bienvenue" class="bienvenue" hidden>
+      <h2>Bienvenue dans Apps</h2>
+      <p>Toutes tes applis au même endroit. Récupère d'abord tes données : rien n'est effacé dans tes anciennes applis.</p>
+      <div class="boutons">
+        <button id="bienvenue-transfert" class="btn plein" type="button">Depuis mes anciennes applis</button>
+        <button id="bienvenue-drive" class="btn" type="button">Depuis Google Drive</button>
+      </div>
+    </section>
+
+    <button id="etat-sauvegarde" class="etat-sauvegarde" type="button" hidden></button>
+  </main>
+
+  <!-- Réglages -->
+  <div id="feuille" class="feuille" hidden>
+    <div class="panneau" role="dialog" aria-modal="true" aria-labelledby="titre-reglages">
+      <div class="panneau-haut">
+        <h2 id="titre-reglages">Réglages</h2>
+        <button id="fermer" class="btn petit" type="button">OK</button>
+      </div>
+
+      <section id="r-drive" class="section">
+        <h3>Sauvegarde Google Drive</h3>
+        <div id="drive-carte" class="carte"></div>
+      </section>
+
+      <section id="r-transfert" class="section">
+        <h3>Récupérer depuis tes anciennes applis</h3>
+        <div class="carte">
+          <ol class="etapes">
+            <li>Ouvre l'ancienne appli depuis son icône sur l'écran d'accueil, puis touche <b>Transférer vers Apps</b> en haut de l'écran.</li>
+            <li>Touche <b>Copier mes données</b>.</li>
+            <li>Reviens dans Apps et touche <b>Coller</b> ci-dessous.</li>
+          </ol>
+          <button id="coller" class="btn plein large" type="button">Coller les données copiées</button>
+          <textarea id="zone-coller" class="zone-coller" rows="3" placeholder="Appui long ici, puis « Coller »" hidden></textarea>
+          <p class="aide">Une appli à la fois. Tes anciennes applis gardent leurs données. Ne supprime leurs icônes qu'une fois tout vérifié ici : supprimer une icône efface ses données.</p>
+        </div>
+      </section>
+
+      <section id="r-donnees" class="section">
+        <h3>Tes données dans Apps</h3>
+        <div id="donnees-liste" class="carte liste"></div>
+        <p class="aide">Elles restent sur ce téléphone, dans Apps. Chaque appli les retrouve en s'ouvrant d'ici.</p>
+      </section>
+
+      <section id="r-toi" class="section">
+        <h3>Toi</h3>
+        <div class="carte">
+          <label class="champ"><span>Ton prénom</span><input id="prenom" type="text" autocomplete="given-name" placeholder="Pour te dire bonjour" maxlength="40"></label>
+        </div>
+      </section>
+
+      <section id="r-installer" class="section" hidden>
+        <h3>Ajouter Apps à l'écran d'accueil</h3>
+        <div class="carte">
+          <ol class="etapes">
+            <li>Dans <b>Safari</b>, touche le bouton <b>Partager</b> (ou « ··· » puis Partager).</li>
+            <li>Choisis <b>Sur l'écran d'accueil</b>, puis <b>Ajouter</b>.</li>
+            <li>Ouvre Apps depuis sa nouvelle icône et récupère tes données.</li>
+          </ol>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- Le programme de Maxilla (pour savoir quels exercices tombent aujourd'hui) -->
+  <script src="../maxilla/contenu.js"></script>
+  <script src="applis.js"></script>
+  <script src="sauvegarde.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
