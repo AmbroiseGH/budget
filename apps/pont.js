@@ -192,6 +192,7 @@ body.sur-jour .apps-retour{color:#fff;background:rgba(255,255,255,.16);text-shad
 .apps-feuille button{display:block;width:100%;min-height:48px;margin-top:10px;border:0;border-radius:999px;font:700 15.5px/1 "Jakarta",-apple-system,system-ui,sans-serif;cursor:pointer}
 .apps-feuille .copier{background:#16161d;color:#fff}.apps-feuille .copier.ok{background:#1a9b5a}
 .apps-feuille .fermer{background:#f1f1f5;color:#15151c}
+.apps-feuille [hidden]{display:none!important}
 .apps-feuille textarea{display:block;width:100%;height:90px;margin-top:10px;padding:10px;border:1.5px dashed #ccc;border-radius:12px;font:13px/1.3 ui-monospace,monospace;background:#f6f6f9;color:#333}
 .apps-feuille .note{margin:14px 0 0;font-size:13px;color:#76767f}
 @media (prefers-color-scheme:dark){

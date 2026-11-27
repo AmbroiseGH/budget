@@ -6,6 +6,9 @@
 /* Passage en douceur entre Apps et les applis (Safari récent ; ignoré ailleurs) */
 @view-transition { navigation: auto; }
 
+/* « hidden » l'emporte toujours sur les display des classes */
+[hidden] { display: none !important; }
+
 :root {
   /* Les quatre couleurs du logo */
   --rose: #f7b9c4;
