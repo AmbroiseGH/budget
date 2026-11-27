@@ -58,7 +58,7 @@
       ancienne: { dossier: "maxilla", fichier: "maxilla.json" },
     },
     {
-      id: "salle", nom: "Salle", dossier: "salle/", cle: "salle.v1", couleur: "#17b866",
+      id: "salle", nom: "Salle", dossier: "salle/", cle: "salle.v1", couleur: "#8b5cf6",
       unite: ["séance", "séances"],
       valide: (d) => estObjet(d) && Array.isArray(d.seances) && Array.isArray(d.exercices),
       compter: (d) => d.seances.length + (Array.isArray(d.modeles) ? d.modeles.length : 0),

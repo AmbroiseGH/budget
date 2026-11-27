@@ -99,6 +99,21 @@ const Sons = (() => {
     touche() {
       bruit(0, 0.018, { vol: 0.035, filtre: 3200 });
     },
+    // Chrono : un bip par seconde du décompte, puis un bip plus haut au départ.
+    bip(depart) {
+      if (depart) { note(1318.51, 0, 0.32, { type: "square", vol: 0.08 }); note(1760, 0.02, 0.22, { vol: 0.04 }); }
+      else note(880, 0, 0.12, { type: "square", vol: 0.06 });
+    },
+    // Appui long puis glissé : un petit cran à chaque série gagnée (de plus en plus haut)…
+    cran(n = 0) {
+      note(GAMME[Math.min(n, GAMME.length - 1)] * 0.75, 0, 0.07, { type: "square", vol: 0.035 });
+      bruit(0, 0.012, { vol: 0.03, filtre: 5200 });
+    },
+    // … et une petite montée quand la valeur est copiée.
+    remplir(n = 1) {
+      for (let k = 0; k <= Math.min(n, 5); k++) note(GAMME[k + 1], k * 0.045, 0.2, { type: "triangle", vol: 0.08 });
+      bruit(0, 0.03, { vol: 0.04, filtre: 6000, type: "highpass" });
+    },
     erreur() {
       note(220, 0, 0.12, { type: "triangle", vol: 0.1 });
       note(196, 0.1, 0.16, { type: "triangle", vol: 0.1 });
