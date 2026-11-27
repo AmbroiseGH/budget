@@ -1,6 +1,6 @@
 // Garde Apps disponible hors ligne. Changer VERSION à chaque mise à jour des fichiers.
 // Ce service worker ne s'occupe que des pages d'Apps (/budget/apps/) ; chaque appli a le sien.
-const VERSION = "apps-v2";
+const VERSION = "apps-v3";
 const FICHIERS = ["./", "index.html", "style.css", "applis.js", "sauvegarde.js", "app.js", "pont.js", "manifest.webmanifest",
   "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "../maxilla/contenu.js",

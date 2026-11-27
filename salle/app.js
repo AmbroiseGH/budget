@@ -59,7 +59,12 @@ function ilYA(iso) {
 }
 const fmtKg = (v) => (v == null ? "" : nombre2.format(v));
 const fmtSaisie = (v) => String(v).replace(".", ",");
-const fmtSerie = (x) => (x.kg > 0 ? `${fmtKg(x.kg)} × ${x.reps}` : `PDC × ${x.reps}`);
+// Durées tenues (gainage…) : « 0:45 », « 1:30 », « 12:05 ».
+const fmtTemps = (s) => { s = Math.max(0, Math.round(s || 0)); return `${Math.floor(s / 60)}:${deux(s % 60)}`; };
+// Au pavé, une durée se tape comme sur un micro-ondes : 1, 3, 0 → 1:30 ; 4, 5 → 0:45.
+const chiffresEnSec = (t) => { if (!t) return null; const n = Number(t); return isFinite(n) ? Math.floor(n / 100) * 60 + (n % 100) : null; };
+const secEnChiffres = (s) => (s == null ? "" : String(Math.floor(s / 60) * 100 + (s % 60)));
+const fmtSerie = (x) => (x.sec > 0 ? fmtTemps(x.sec) : x.kg > 0 ? `${fmtKg(x.kg)} × ${x.reps}` : `PDC × ${x.reps}`);
 const fmtTonnage = (kg) => (kg >= 10000 ? `${nombre1.format(kg / 1000)} t` : `${nombre.format(Math.round(kg))} kg`);
 function fmtDuree(ms) {
   const m = Math.max(1, Math.round(ms / 60000));
@@ -104,13 +109,16 @@ function devinerGroupe(nom) {
   for (const [re, g] of MOTS_GROUPES) if (re.test(n)) return g;
   return "autre";
 }
+// Deux sortes d'exercices : à la charge (kg × reps) ou au temps (gainage, chaise…).
+const MOTS_TEMPS = /gainage|planche|plank|chaise|wall ?sit|suspension|dead ?hang|hollow hold|l.?sit|isometri|tenue? (statique|isometrique)/;
+const devinerType = (nom) => (MOTS_TEMPS.test(sansAccents(nom)) ? "temps" : "charge");
 const IDEES = [
   "Développé couché", "Développé incliné haltères", "Dips", "Écarté à la poulie",
   "Tractions", "Tirage vertical", "Rowing barre", "Soulevé de terre",
   "Développé militaire", "Élévations latérales", "Face pull",
   "Curl haltères", "Curl marteau", "Extension triceps à la poulie",
   "Squat", "Presse à cuisses", "Fentes", "Leg curl", "Leg extension", "Hip thrust", "Mollets debout",
-  "Crunch", "Relevés de jambes",
+  "Crunch", "Relevés de jambes", "Gainage", "Gainage latéral",
 ];
 
 /* =========================================================
@@ -120,9 +128,9 @@ const IDEES = [
 function neuf() {
   return {
     version: 1,
-    exercices: [],      // { id, nom, groupe, pas?, supprime? }
+    exercices: [],      // { id, nom, groupe, type?: "temps", pas?, pasSec?, supprime? }
     modeles: [],        // séances types : { id, nom, items: [{ ex, series, repos }] }
-    seances: [],        // séances terminées : { id, modele, nom, debut, fin, items: [{ ex, repos, series: [{ kg, reps }] }] }
+    seances: [],        // séances terminées : { id, modele, nom, debut, fin, items: [{ ex, repos, series: [{ kg, reps } ou { sec }] }] }
     enCours: null,      // séance commencée : mêmes champs, séries { kg, reps, fait }, + repos { fin, duree }
     reglages: { objectif: 3, pas: 2.5, sons: true, ecran: true },
   };
@@ -136,7 +144,10 @@ function valide(d) {
 function serieOk(x) {
   x = objet(x);
   const kg = nb(x.kg), reps = nb(x.reps);
-  return { ...x, kg: kg !== null && kg >= 0 ? kg : null, reps: reps !== null && reps >= 0 ? Math.round(reps) : null };
+  const r = { ...x, kg: kg !== null && kg >= 0 ? kg : null, reps: reps !== null && reps >= 0 ? Math.round(reps) : null };
+  // Exercice au temps : la durée tenue, en secondes (absente des séries à la charge).
+  if ("sec" in x) { const s = nb(x.sec); r.sec = s !== null && s >= 0 ? Math.round(s) : null; }
+  return r;
 }
 function seanceOk(s) {
   return {
@@ -210,15 +221,20 @@ const exo = (id) => donnees.exercices.find((e) => e.id === id) || { id, nom: "Ex
 const exercicesVisibles = () => donnees.exercices.filter((e) => !e.supprime);
 const modele = (id) => donnees.modeles.find((m) => m.id === id) || null;
 const pasDe = (id) => { const e = donnees.exercices.find((x) => x.id === id); return e && e.pas > 0 ? e.pas : donnees.reglages.pas; };
-const faite = (x) => !!x && x.reps > 0;
+const PAS_SEC = 5; // boutons − et + du pavé pour une durée : 5 secondes, sauf réglage de l'exercice
+const pasSecDe = (id) => { const e = donnees.exercices.find((x) => x.id === id); return e && e.pasSec > 0 ? e.pasSec : PAS_SEC; };
+const enTemps = (id) => { const e = donnees.exercices.find((x) => x.id === id); return !!e && e.type === "temps"; };
+const premierChamp = (it) => (enTemps(it.ex) ? "sec" : "kg");
+const faite = (x) => !!x && (x.reps > 0 || x.sec > 0);
 const serieVide = () => ({ kg: null, reps: null, fait: false });
 
-function creerExercice(nom, groupe) {
+function creerExercice(nom, groupe, type) {
   nom = majuscule(String(nom).trim().replace(/\s+/g, " ")).slice(0, 60);
   const n = sansAccents(nom);
   const ex = donnees.exercices.find((e) => sansAccents(e.nom) === n);
   if (ex) { if (ex.supprime) { delete ex.supprime; sauver(); } return ex; }
   const e = { id: nouvelId(), nom, groupe: groupe || devinerGroupe(nom), cree: new Date().toISOString() };
+  if ((type || devinerType(nom)) === "temps") e.type = "temps";
   donnees.exercices.push(e);
   sauver();
   return e;
@@ -230,10 +246,12 @@ function creerExercice(nom, groupe) {
 
 // 1RM estimé (formule d'Epley) : le poids qu'on pourrait soulever une seule fois.
 const e1rm = (kg, reps) => (kg > 0 && reps > 0 ? (reps === 1 ? kg : kg * (1 + reps / 30)) : 0);
-const RANG = { charge: 3, force: 2, reps: 1 };
-const NOMS_RECORD = { charge: "Record de charge", force: "Record de force", reps: "Record de reps" };
+const RANG = { charge: 3, force: 2, reps: 1, temps: 1 };
+const NOMS_RECORD = { charge: "Record de charge", force: "Record de force", reps: "Record de reps", temps: "Record de temps" };
+const meilleursVides = () => ({ kg: 0, e1rm: 0, reps0: 0, sec0: 0 });
 
 function majMeilleurs(m, x) {
+  if (x.sec > 0) { if (x.sec > (m.sec0 || 0)) m.sec0 = x.sec; return; }
   const kg = x.kg || 0;
   if (kg > m.kg) m.kg = kg;
   const f = e1rm(kg, x.reps);
@@ -241,8 +259,10 @@ function majMeilleurs(m, x) {
   if (kg === 0 && x.reps > m.reps0) m.reps0 = x.reps;
 }
 // Une série bat-elle les meilleures d'avant ? Plus lourd = record de charge ; plus fort à poids
-// égal ou moindre = record de force (1RM estimé) ; au poids du corps = record de reps.
+// égal ou moindre = record de force (1RM estimé) ; au poids du corps = record de reps ;
+// au temps (gainage) = record de temps.
 function typeRecord(x, m) {
+  if (x.sec > 0) return m.sec0 > 0 && x.sec > m.sec0 ? "temps" : null;
   const kg = x.kg || 0;
   if (kg > 0) {
     if (kg > m.kg + 1e-9) return "charge";
@@ -251,19 +271,24 @@ function typeRecord(x, m) {
   }
   return m.reps0 > 0 && x.reps > m.reps0 ? "reps" : null;
 }
-const cleTop = (x) => e1rm(x.kg || 0, x.reps) * 1000 + x.reps;
+const cleTop = (x) => (x.sec > 0 ? x.sec : e1rm(x.kg || 0, x.reps) * 1000 + x.reps);
 function metriques(series) {
-  let charge = 0, force = 0, volume = 0, reps = 0, total = 0, top = series[0];
+  let charge = 0, force = 0, volume = 0, reps = 0, total = 0, temps = 0, cumul = 0, top = series[0];
   for (const x of series) {
-    const kg = x.kg || 0;
-    charge = Math.max(charge, kg);
-    force = Math.max(force, e1rm(kg, x.reps));
-    volume += kg * x.reps;
-    reps = Math.max(reps, x.reps);
-    total += x.reps;
+    if (x.sec > 0) {
+      temps = Math.max(temps, x.sec);
+      cumul += x.sec;
+    } else {
+      const kg = x.kg || 0;
+      charge = Math.max(charge, kg);
+      force = Math.max(force, e1rm(kg, x.reps));
+      volume += kg * x.reps;
+      reps = Math.max(reps, x.reps);
+      total += x.reps;
+    }
     if (cleTop(x) > cleTop(top)) top = x;
   }
-  return { charge, force, volume, reps, total, top };
+  return { charge, force, volume, reps, total, temps, cumul, top };
 }
 
 let A = null;
@@ -275,12 +300,12 @@ function analyser() {
       const series = it.series.filter(faite);
       if (!series.length) continue;
       const histo = !!courant[it.ex];
-      const m = courant[it.ex] || (courant[it.ex] = { kg: 0, e1rm: 0, reps0: 0 });
+      const m = courant[it.ex] || (courant[it.ex] = meilleursVides());
       let meilleur = null;
       for (const x of series) {
         const t = histo ? typeRecord(x, m) : null;
         if (t && (!meilleur || RANG[t] > RANG[meilleur.type] || (RANG[t] === RANG[meilleur.type] && cleTop(x) > cleTop(meilleur))))
-          meilleur = { ex: it.ex, seance: s.id, date: s.debut, type: t, kg: x.kg || 0, reps: x.reps };
+          meilleur = { ex: it.ex, seance: s.id, date: s.debut, type: t, kg: x.kg || 0, reps: x.reps, ...(x.sec > 0 ? { sec: x.sec } : {}) };
         majMeilleurs(m, x);
       }
       if (meilleur) records.push(meilleur);
@@ -321,14 +346,19 @@ function meilleursAvant(exId, avant, sauf) {
   let m = null;
   for (const e of A.parEx[exId] || []) {
     if (e.s.id === sauf || e.date >= avant) continue;
-    m = m || { kg: 0, e1rm: 0, reps0: 0 };
+    m = m || meilleursVides();
     for (const x of e.series) majMeilleurs(m, x);
   }
   return m;
 }
 // Vert : plus lourd, ou plus de reps au même poids. Rouge : plus léger, ou moins de reps au même poids.
+// Au temps : vert si tenu plus longtemps, rouge si moins longtemps.
 function verdictDe(x, ref) {
-  if (!ref || !(x.reps > 0)) return null;
+  if (!ref || !faite(x)) return null;
+  if (x.sec > 0 || ref.sec > 0) {
+    if (!(x.sec > 0 && ref.sec > 0)) return null;
+    return x.sec > ref.sec ? "plus" : x.sec < ref.sec ? "moins" : "egal";
+  }
   const kg = x.kg || 0, rkg = ref.kg || 0;
   if (kg > rkg + 1e-9) return "plus";
   if (kg < rkg - 1e-9) return "moins";
@@ -344,20 +374,22 @@ const refDans = (prev, j) => (prev && prev.length ? prev[j] || prev[prev.length 
 // Résumé d'une séance terminée (gardé en cache jusqu'au prochain recalcul).
 function resumeSeance(s) {
   if (A.resumes[s.id]) return A.resumes[s.id];
-  let tonnage = 0, series = 0, plus = 0, egal = 0, moins = 0;
+  let tonnage = 0, tenu = 0, series = 0, plus = 0, egal = 0, moins = 0;
   for (const it of s.items) {
     const prev = precedente(it.ex, s.debut, s.id);
     it.series.filter(faite).forEach((x, j) => {
       series++;
-      tonnage += (x.kg || 0) * x.reps;
+      if (x.sec > 0) tenu += x.sec; else tonnage += (x.kg || 0) * x.reps;
       const v = verdictDe(x, refDans(prev && prev.series, j));
       if (v === "plus") plus++; else if (v === "moins") moins++; else if (v === "egal") egal++;
     });
   }
   const duree = s.fin ? new Date(s.fin) - new Date(s.debut) : 0;
   const records = A.records.filter((r) => r.seance === s.id);
-  return (A.resumes[s.id] = { tonnage, series, plus, egal, moins, duree, records });
+  return (A.resumes[s.id] = { tonnage, tenu, series, plus, egal, moins, duree, records });
 }
+// Ce qu'une séance a « soulevé » : les kilos, ou le temps tenu si elle n'a que du gainage.
+const fmtTravail = (r) => (r.tonnage > 0 || !r.tenu ? fmtTonnage(r.tonnage) : `${fmtTemps(r.tenu)} tenues`);
 
 function conseillee() {
   const ms = donnees.modeles.filter((m) => m.items.length);
@@ -407,7 +439,7 @@ function rejouer(elm, classe) {
   elm.addEventListener("animationend", () => elm.classList.remove(classe), { once: true });
 }
 
-const COULEURS_FETE = ["#3ddc84", "#ffffff", "#17b866", "#ffc53d", "#b8f5d0"];
+const COULEURS_FETE = ["#a78bfa", "#3ddc84", "#ffffff", "#8b5cf6", "#e879f9", "#c4b5fd"];
 const COULEURS_OR = ["#ffd66b", "#f5b400", "#fff2c4", "#ffffff", "#e0a100"];
 function confettis(depuis, couleurs = COULEURS_FETE, n = 60) {
   if (reduit || !depuis) return;
@@ -448,7 +480,7 @@ function flashRecord(type, x) {
 }
 
 let minuteurToast;
-function toast(texte, { rouge = false, or = false, icone: ic = "✓", action, surAction } = {}) {
+function toast(texte, { rouge = false, or = false, icone: ic = "✓", action, surAction, duree } = {}) {
   const t = $("toast");
   if (!$("fete").hidden) return; // le bilan dit déjà tout
   remplir(t,
@@ -458,7 +490,7 @@ function toast(texte, { rouge = false, or = false, icone: ic = "✓", action, su
   );
   t.classList.add("visible");
   clearTimeout(minuteurToast);
-  minuteurToast = setTimeout(() => t.classList.remove("visible"), action ? 5000 : 2400);
+  minuteurToast = setTimeout(() => t.classList.remove("visible"), duree || (action ? 5000 : 2400));
 }
 
 /* =========================================================
@@ -641,7 +673,7 @@ function ligneSeance(s) {
   return el("button", { class: "ligne-seance", onclick: () => ouvrirSeance(s.id) },
     el("span", { class: "date-bloc" }, el("b", {}, String(d.getDate())), el("small", {}, fmtJourSem.format(d).replace(".", ""))),
     el("span", { class: "ls-txt" }, el("b", {}, s.nom),
-      el("small", {}, [fmtDuree(r.duree), fmtTonnage(r.tonnage), pluriel(r.series, "série")].join(" · "))),
+      el("small", {}, [fmtDuree(r.duree), fmtTravail(r), pluriel(r.series, "série")].join(" · "))),
     el("span", { class: "ls-badges" },
       r.records.length ? el("span", { class: "badge or" }, icone("couronne"), String(r.records.length)) : null,
       r.plus ? el("span", { class: "badge vert" }, icone("haut"), String(r.plus)) : null,
@@ -856,7 +888,7 @@ function rendreSelecteur(o, sel) {
       const nom = majuscule(sel.recherche.trim().replace(/\s+/g, " "));
       blocs.push(el("div", { class: "bloc" }, el("button", { class: "choix-ex creer", onclick: () => creer(nom) },
         el("span", { class: "case" }, icone("plus")),
-        el("span", { class: "ce-txt" }, el("b", {}, `Créer « ${nom} »`), el("small", {}, `Nouvel exercice · ${nomGroupe(devinerGroupe(nom))}`)))));
+        el("span", { class: "ce-txt" }, el("b", {}, `Créer « ${nom} »`), el("small", {}, `Nouvel exercice · ${nomGroupe(devinerGroupe(nom))}${devinerType(nom) === "temps" ? " · au temps" : ""}`)))));
     }
     for (const g of GROUPES) {
       const l = filtres.filter((e) => e.groupe === g.id).sort(alpha);
@@ -934,10 +966,10 @@ const refDe = (exId, j) => refDans(refsDe(exId).prev, j);
 // Ce qui s'affiche en transparence : la même série la dernière fois, sinon la série d'avant aujourd'hui.
 function fantomeDe(it, j) {
   const r = refDe(it.ex, j);
-  if (r) return { kg: r.kg, reps: r.reps };
+  if (r) return { kg: r.kg, reps: r.reps, sec: r.sec };
   for (let k = j - 1; k >= 0; k--) {
     const x = it.series[k];
-    if (x.reps > 0 || x.kg != null) return { kg: x.kg, reps: x.reps };
+    if (x.reps > 0 || x.kg != null || x.sec > 0) return { kg: x.kg, reps: x.reps, sec: x.sec };
   }
   return null;
 }
@@ -947,14 +979,14 @@ function recordsDe(it) {
   if (!m0) return [];
   const m = { ...m0 }, res = [];
   it.series.forEach((x, j) => {
-    if (!(x.fait && x.reps > 0)) return;
+    if (!(x.fait && faite(x))) return;
     res[j] = typeRecord(x, m);
     majMeilleurs(m, x);
   });
   return res;
 }
 function estBattu(it) {
-  if (!refsDe(it.ex).prev || !it.series.length || !it.series.every((x) => x.fait && x.reps > 0)) return false;
+  if (!refsDe(it.ex).prev || !it.series.length || !it.series.every((x) => x.fait && faite(x))) return false;
   let plus = 0;
   for (let j = 0; j < it.series.length; j++) {
     const v = verdictDe(it.series[j], refDe(it.ex, j));
@@ -977,6 +1009,10 @@ function compterVerdicts() {
 function objectifDe(it) {
   const prev = refsDe(it.ex).prev;
   if (!prev) return null;
+  if (prev.some((x) => x.sec > 0)) {
+    const top = Math.max(...prev.map((x) => x.sec || 0)), pas = pasSecDe(it.ex);
+    return `${fmtTemps(top + pas)} (+${pas} s)`;
+  }
   const top = prev.reduce((a, x) => ((x.kg || 0) > (a.kg || 0) || ((x.kg || 0) === (a.kg || 0) && x.reps > a.reps) ? x : a));
   const kg = top.kg || 0;
   if (kg > 0) return `${fmtKg(kg)} × ${top.reps + 1} ou ${fmtKg(arrondi(kg + pasDe(it.ex)))} × ${top.reps}`;
@@ -1008,16 +1044,18 @@ function carteExercice(it, i) {
   const recs = recordsDe(it);
   const battu = estBattu(it);
   const objectif = objectifDe(it);
-  return el("article", { class: "carte-ex" + (battu ? " battu" : ""), "data-i": i },
+  const temps = enTemps(it.ex);
+  return el("article", { class: "carte-ex" + (battu ? " battu" : "") + (temps ? " au-temps" : ""), "data-i": i },
     el("div", { class: "ce-tete" },
       el("button", { class: "ce-nom", onclick: () => ouvrirExercice(it.ex) }, el("span", {}, e.nom), icone("chevron")),
       battu ? el("span", { class: "pastille vert" }, icone("haut"), "Battu") : null,
       el("button", { class: "rond petit nu", "aria-label": `Options pour ${e.nom}`, onclick: () => menuExercice(i) }, icone("points"))),
     el("div", { class: "ce-infos" },
       objectif ? el("span", { class: "ce-info" }, icone("cible"), "Objectif ", el("b", {}, objectif))
-        : el("span", { class: "ce-info" }, icone("cible"), r.prev ? "" : "Première fois : note tes charges"),
+        : el("span", { class: "ce-info" }, icone("cible"), r.prev ? "" : temps ? (L.mode === "direct" ? "Première fois : lance le chrono" : "Première fois") : "Première fois : note tes charges"),
       el("button", { class: "ce-info", "aria-label": "Régler le repos", onclick: () => reglerRepos(i) }, icone("chrono"), el("b", {}, fmtRepos(it.repos)))),
-    el("div", { class: "entetes", "aria-hidden": "true" }, el("span"), el("span", {}, "kg"), el("span"), el("span", {}, "reps"), el("span")),
+    temps ? el("div", { class: "entetes temps", "aria-hidden": "true" }, el("span"), el("span", {}, "durée"), el("span"), el("span"))
+      : el("div", { class: "entetes", "aria-hidden": "true" }, el("span"), el("span", {}, "kg"), el("span"), el("span", {}, "reps"), el("span")),
     ...it.series.map((x, j) => ligneSerie(it, i, j, recs[j])),
     el("div", { class: "ce-pied" },
       el("button", { onclick: () => ajouterSerie(i) }, icone("plus"), "Série"),
@@ -1030,34 +1068,54 @@ function ligneSerie(it, i, j, rec) {
   const ref = refDe(it.ex, j);
   const v = verdictDe(x, ref), vk = verdictKg(x, ref);
   const a = L.actif && L.actif.i === i && L.actif.j === j ? L.actif : null;
-  const etiquette = x.fait ? `Série ${j + 1} faite (${fmtSerie({ kg: x.kg, reps: x.reps })}) : touche pour annuler` : `Valider la série ${j + 1}`;
-  return el("div", { class: `ligne${x.fait ? " faite" : ""}${x.fait && v ? " v-" + v : ""}${rec ? " record" : ""}`, "data-i": i, "data-j": j },
-    el("span", { class: "num" }, rec ? icone("couronne") : String(j + 1)),
+  const temps = enTemps(it.ex);
+  const etiquette = x.fait ? `Série ${j + 1} faite (${fmtSerie(x)}) : touche pour annuler` : `Valider la série ${j + 1}`;
+  const valider = el("button", { class: "valider", "aria-label": etiquette, onclick: () => basculerSerie(i, j) },
+    icone(x.fait ? (v === "plus" ? "haut" : v === "moins" ? "bas" : "coche") : "coche"));
+  const classe = `ligne${temps ? " temps" : ""}${x.fait ? " faite" : ""}${x.fait && v ? " v-" + v : ""}${rec ? " record" : ""}`;
+  const num = el("span", { class: "num" }, rec ? icone("couronne") : String(j + 1));
+  if (temps) {
+    // Au temps : une seule case (la durée), le chrono, et la validation.
+    const chrono = L.mode === "direct" && !x.fait
+      ? el("button", { class: "lancer", "aria-label": `Lancer le chrono de la série ${j + 1}`, onclick: () => ouvrirChrono(i, j) }, icone("lecture"))
+      : el("span");
+    return el("div", { class: classe, "data-i": i, "data-j": j }, num, cellule(i, j, "sec", x, f, v, a), chrono, valider);
+  }
+  return el("div", { class: classe, "data-i": i, "data-j": j },
+    num,
     cellule(i, j, "kg", x, f, vk, a),
     el("span", { class: "fois" }, "×"),
     cellule(i, j, "reps", x, f, v, a),
-    el("button", { class: "valider", "aria-label": etiquette, onclick: () => basculerSerie(i, j) },
-      icone(x.fait ? (v === "plus" ? "haut" : v === "moins" ? "bas" : "coche") : "coche")));
+    valider);
 }
 
 function texteFantome(champ, f) {
+  if (champ === "sec") return f && f.sec > 0 ? fmtTemps(f.sec) : "durée";
   if (!f) return champ === "kg" ? "kg" : "reps";
   if (champ === "kg") return f.kg > 0 ? fmtKg(f.kg) : "PDC";
   return f.reps > 0 ? String(f.reps) : "reps";
 }
+// Ce qu'affiche une case pour une valeur, et ce qu'on y tape au pavé.
+const texteValeur = (champ, v) => (champ === "sec" ? fmtTemps(v) : champ === "kg" ? (v === 0 ? "PDC" : fmtKg(v)) : String(v));
+const texteSaisie = (champ, v) => (v == null ? "" : champ === "kg" ? fmtSaisie(v) : champ === "sec" ? secEnChiffres(v) : String(v));
+const NOMS_CHAMPS = { kg: "Charge", reps: "Répétitions", sec: "Durée" };
 function cellule(i, j, champ, x, f, verdict, a) {
   const actif = !!a && a.champ === champ;
   const val = x[champ];
   let contenu, aValeur = false;
-  if (actif && a.texte !== "") { contenu = a.frais ? el("span", { class: "selection" }, a.texte) : a.texte; aValeur = true; }
-  else if (!actif && val != null) { contenu = champ === "kg" && val === 0 ? el("span", { class: "petit" }, "PDC") : champ === "kg" ? fmtKg(val) : String(val); aValeur = true; }
+  if (actif && a.texte !== "") {
+    const t = champ === "sec" ? fmtTemps(chiffresEnSec(a.texte)) : a.texte;
+    contenu = a.frais ? el("span", { class: "selection" }, t) : t;
+    aValeur = true;
+  }
+  else if (!actif && val != null) { contenu = champ === "kg" && val === 0 ? el("span", { class: "petit" }, "PDC") : texteValeur(champ, val); aValeur = true; }
   else if (!actif && champ === "kg" && x.fait) contenu = el("span", { class: "petit" }, "PDC");
   else { const t = texteFantome(champ, f); contenu = el("span", { class: "fantome" + (/^\d/.test(t) ? "" : " petit") }, t); }
   const couleur = aValeur && verdict && verdict !== "egal" ? " " + verdict : "";
-  const nom = champ === "kg" ? "Charge" : "Répétitions";
+  const dit = val != null ? (champ === "kg" ? (val === 0 ? "poids du corps" : fmtKg(val) + " kg") : texteValeur(champ, val)) : null;
   return el("button", {
-    class: `cellule ${champ}${actif ? " actif" : ""}${couleur}`,
-    "aria-label": `${nom}, série ${j + 1}${val != null ? ` : ${champ === "kg" ? fmtKg(val) + " kg" : val}` : f ? `, la dernière fois ${texteFantome(champ, f)}` : ""}`,
+    class: `cellule ${champ}${actif ? " actif" : ""}${couleur}`, "data-champ": champ,
+    "aria-label": `${NOMS_CHAMPS[champ]}, série ${j + 1}${dit != null ? ` : ${dit}` : f ? `, la dernière fois ${texteFantome(champ, f)}` : ""}`,
     onclick: () => ouvrirCellule(i, j, champ),
   }, contenu);
 }
@@ -1093,7 +1151,7 @@ function ouvrirCellule(i, j, champ) {
   Sons.debloquer();
   const ancien = L.actif;
   const x = L.s.items[i].series[j];
-  L.actif = { i, j, champ, frais: true, texte: x[champ] != null ? (champ === "kg" ? fmtSaisie(x[champ]) : String(x[champ])) : "" };
+  L.actif = { i, j, champ, frais: true, texte: texteSaisie(champ, x[champ]) };
   if (ancien && (ancien.i !== i || ancien.j !== j)) majLigne(ancien.i, ancien.j);
   majLigne(i, j);
   afficherPave();
@@ -1101,19 +1159,23 @@ function ouvrirCellule(i, j, champ) {
 function afficherPave() {
   const a = L.actif;
   if (!a) return;
-  const it = L.s.items[a.i], e = exo(it.ex), kg = a.champ === "kg";
+  const it = L.s.items[a.i], e = exo(it.ex), kg = a.champ === "kg", sec = a.champ === "sec";
   const ref = refDe(it.ex, a.j);
   $("pave-titre").textContent = `${e.nom} · série ${a.j + 1}`;
   $("pave-aide").textContent = ref ? `Dernière fois (${quand(refsDe(it.ex).date)}) : ${fmtSerie(ref)}`
-    : kg ? "Charge en kg (vide = poids du corps)" : "Nombre de répétitions";
-  const pas = kg ? pasDe(it.ex) : 1;
-  $("pave-moins").textContent = `−${kg ? fmtKg(pas) : 1}`;
-  $("pave-plus").textContent = `+${kg ? fmtKg(pas) : 1}`;
-  $("pave-moins").setAttribute("aria-label", kg ? `Enlever ${fmtKg(pas)} kg` : "Une répétition de moins");
-  $("pave-plus").setAttribute("aria-label", kg ? `Ajouter ${fmtKg(pas)} kg` : "Une répétition de plus");
+    : kg ? "Charge en kg (vide = poids du corps)" : sec ? "Durée : tape 1 3 0 pour 1:30" : "Nombre de répétitions";
+  const pas = kg ? pasDe(it.ex) : sec ? pasSecDe(it.ex) : 1;
+  $("pave-moins").textContent = kg ? `−${fmtKg(pas)}` : sec ? `−${pas} s` : "−1";
+  $("pave-plus").textContent = kg ? `+${fmtKg(pas)}` : sec ? `+${pas} s` : "+1";
+  $("pave-moins").setAttribute("aria-label", kg ? `Enlever ${fmtKg(pas)} kg` : sec ? `${pas} secondes de moins` : "Une répétition de moins");
+  $("pave-plus").setAttribute("aria-label", kg ? `Ajouter ${fmtKg(pas)} kg` : sec ? `${pas} secondes de plus` : "Une répétition de plus");
+  // La touche en bas à gauche : la virgule pour les kilos, le chrono pour une durée.
   const virgule = $("pave-virgule");
-  virgule.disabled = !kg;
-  virgule.textContent = kg ? "," : "";
+  const chrono = sec && L.mode === "direct";
+  virgule.disabled = !kg && !chrono;
+  virgule.classList.toggle("chrono-touche", chrono);
+  if (chrono) { remplir(virgule, icone("lecture")); virgule.setAttribute("aria-label", "Lancer le chrono"); }
+  else { virgule.textContent = kg ? "," : ""; virgule.removeAttribute("aria-label"); }
   const suiv = $("pave-suivant");
   suiv.classList.toggle("valide", !kg);
   remplir(suiv, ...(kg ? ["Suivant"] : [icone("coche"), "Valider"]));
@@ -1139,14 +1201,15 @@ function montrerLigne(i, j) {
   if (r.bottom > bas) window.scrollBy({ top: r.bottom - bas, behavior: comportement });
   else if (r.top < haut) window.scrollBy({ top: r.top - haut, behavior: comportement });
 }
-function fermerPave(immediat) {
+// garderLigne : pendant un appui long, la case touchée ne doit pas être redessinée (ni la page bouger).
+function fermerPave(immediat, { garderLigne = false } = {}) {
   const p = $("pave");
   const a = L && L.actif;
   if (L) L.actif = null;
-  if (a) majLigne(a.i, a.j);
+  if (a && !garderLigne) majLigne(a.i, a.j);
   sauverSiBesoin();
   p.classList.remove("ouvert");
-  $("vue-seance").style.paddingBottom = "";
+  if (!garderLigne) $("vue-seance").style.paddingBottom = "";
   clearTimeout(minuteriePave);
   if (immediat) p.hidden = true;
   else minuteriePave = setTimeout(() => { if (!p.classList.contains("ouvert")) p.hidden = true; }, 300);
@@ -1159,17 +1222,22 @@ function secouer(i, j) {
 function touche(k) {
   const a = L && L.actif;
   if (!a) return;
-  const it = L.s.items[a.i], x = it.series[a.j], kg = a.champ === "kg";
+  const it = L.s.items[a.i], x = it.series[a.j], kg = a.champ === "kg", sec = a.champ === "sec";
   vibrer(6);
   if (k === "fermer") { fermerPave(); return; }
   if (k === "suivant") { suivant(); return; }
   if (/^\d$/.test(k)) {
     let t = a.frais ? "" : a.texte;
     if (t === "0") t = "";
-    const [ent, dec] = t.split(",");
-    if (dec !== undefined ? dec.length >= 2 : ent.length >= 3) { secouer(a.i, a.j); return; }
+    if (sec) {
+      if (t.length >= 4) { secouer(a.i, a.j); return; } // 99:59 au plus
+    } else {
+      const [ent, dec] = t.split(",");
+      if (dec !== undefined ? dec.length >= 2 : ent.length >= 3) { secouer(a.i, a.j); return; }
+    }
     a.texte = t + k;
   } else if (k === "virgule") {
+    if (sec) { if (L.mode === "direct") ouvrirChrono(a.i, a.j); return; }
     if (!kg) return;
     const t = a.frais ? "" : a.texte;
     if (t.includes(",")) return;
@@ -1177,11 +1245,11 @@ function touche(k) {
   } else if (k === "effacer") {
     a.texte = a.frais ? "" : a.texte.slice(0, -1);
   } else if (k === "plus" || k === "moins") {
-    const pas = kg ? pasDe(it.ex) : 1;
+    const pas = kg ? pasDe(it.ex) : sec ? pasSecDe(it.ex) : 1;
     const f = fantomeDe(it, a.j);
     const base = x[a.champ] != null ? x[a.champ] : f && f[a.champ] != null ? f[a.champ] : 0;
     const n = Math.max(0, arrondi(base + (k === "plus" ? pas : -pas)));
-    a.texte = kg ? fmtSaisie(n) : String(Math.round(n));
+    a.texte = texteSaisie(a.champ, kg ? n : Math.round(n));
     enregistrerSaisie(true);
     return;
   } else return;
@@ -1190,10 +1258,11 @@ function touche(k) {
 function enregistrerSaisie(frais) {
   const a = L.actif, x = L.s.items[a.i].series[a.j];
   a.frais = frais;
-  const t = a.texte.replace(",", ".").replace(/\.$/, "");
-  const v = t === "" ? null : Number(t);
-  x[a.champ] = v == null || !isFinite(v) ? null : a.champ === "reps" ? Math.round(v) : v;
-  if (x.fait && !(x.reps > 0)) x.fait = false; // une série validée dont on efface les reps n'est plus faite
+  let v;
+  if (a.champ === "sec") v = chiffresEnSec(a.texte);
+  else { const t = a.texte.replace(",", ".").replace(/\.$/, ""); v = t === "" ? null : Number(t); }
+  x[a.champ] = v == null || !isFinite(v) ? null : a.champ === "kg" ? v : Math.round(v);
+  if (x.fait && !faite(x)) x.fait = false; // une série validée dont on efface les reps (ou la durée) n'est plus faite
   sauverBientot();
   majLigne(a.i, a.j);
   majInfo();
@@ -1203,24 +1272,26 @@ function suivant() {
   const f = fantomeDe(it, a.j);
   if (a.champ === "kg") {
     if (x.kg == null && f && f.kg != null) x.kg = f.kg;
-    L.actif = { i: a.i, j: a.j, champ: "reps", frais: true, texte: x.reps != null ? String(x.reps) : "" };
+    if (a.j === 0 && x.kg != null) astuceRemplir(it, "kg");
+    L.actif = { i: a.i, j: a.j, champ: "reps", frais: true, texte: texteSaisie("reps", x.reps) };
     sauverBientot();
     majLigne(a.i, a.j);
     afficherPave();
     return;
   }
-  if (!(x.reps > 0)) {
-    if (f && f.reps > 0) x.reps = f.reps;
+  const champ = a.champ; // « reps », ou « sec » pour un exercice au temps
+  if (!(x[champ] > 0)) {
+    if (f && f[champ] > 0) x[champ] = f[champ];
     else { secouer(a.i, a.j); return; }
   }
-  if (x.kg == null && f && f.kg != null) x.kg = f.kg;
+  if (champ === "reps" && x.kg == null && f && f.kg != null) x.kg = f.kg;
   const deja = x.fait;
   x.fait = true;
   let k = a.j + 1;
   while (k < it.series.length && it.series[k].fait) k++;
   L.actif = null;
   apresValidation(a.i, a.j, deja);
-  if (k < it.series.length) ouvrirCellule(a.i, k, "kg"); else fermerPave();
+  if (k < it.series.length) ouvrirCellule(a.i, k, premierChamp(it)); else fermerPave();
 }
 
 // Bouton ✓ : sans rien taper, on refait la même chose que la dernière fois.
@@ -1236,7 +1307,12 @@ function basculerSerie(i, j) {
     return;
   }
   const f = fantomeDe(it, j);
-  if (!(x.reps > 0)) {
+  if (enTemps(it.ex)) {
+    if (!(x.sec > 0)) {
+      if (f && f.sec > 0) x.sec = f.sec;
+      else { ouvrirCellule(i, j, "sec"); return; }
+    }
+  } else if (!(x.reps > 0)) {
     if (f && f.reps > 0) { x.reps = f.reps; if (x.kg == null && f.kg != null) x.kg = f.kg; }
     else { ouvrirCellule(i, j, x.kg == null ? "kg" : "reps"); return; }
   } else if (x.kg == null && f && f.kg != null) x.kg = f.kg;
@@ -1286,7 +1362,7 @@ function retirerSerie(i) {
   const it = L.s.items[i];
   if (it.series.length <= 1) return;
   const x = it.series[it.series.length - 1];
-  if (x.reps > 0 && !confirm(`Retirer la série ${it.series.length} (${fmtSerie(x)}) ?`)) return;
+  if (faite(x) && !confirm(`Retirer la série ${it.series.length} (${fmtSerie(x)}) ?`)) return;
   if (L.actif && L.actif.i === i && L.actif.j === it.series.length - 1) fermerPave(true);
   it.series.pop();
   sauver();
@@ -1324,7 +1400,7 @@ function menuExercice(i) {
       i > 0 ? lien("monter", "Faire plus tôt", "Monter d'un cran dans la séance", () => deplacer(-1)) : null,
       i < n - 1 ? el("button", { class: "reglage", onclick: () => deplacer(1) }, icone("monter", "retourne"), el("span", { class: "reglage-txt" }, el("b", {}, "Faire plus tard"), el("small", {}, "Descendre d'un cran"))) : null,
       lien("croix", "Retirer de cette séance", "La séance type ne change pas", () => {
-        if (it.series.some((x) => x.reps > 0) && !confirm(`Retirer ${e.nom} de la séance ? Ses séries notées seront perdues.`)) return;
+        if (it.series.some(faite) && !confirm(`Retirer ${e.nom} de la séance ? Ses séries notées seront perdues.`)) return;
         L.s.items.splice(i, 1);
         if (L.actif) L.actif = null;
         fermerPave(true);
@@ -1349,6 +1425,238 @@ function ajouterExercicesSeance() {
       setTimeout(() => document.querySelector(`#seance-liste .carte-ex[data-i="${debut}"]`)?.scrollIntoView({ behavior: reduit ? "auto" : "smooth", block: "center" }), 60);
     },
   });
+}
+
+/* ---------- Chrono des exercices au temps (gainage…) ---------- */
+
+const DECOMPTE = 3;                        // secondes pour se mettre en position
+const TOUR_CHRONO = 2 * Math.PI * 116;     // circonférence de l'anneau (r = 116)
+let C = null;                              // { i, j, debut, cible, battu, bip, raf, txt }
+
+function ouvrirChrono(i, j) {
+  if (!L || L.mode !== "direct" || C) return;
+  const it = L.s.items[i], x = it && it.series[j];
+  if (!x) return;
+  Sons.debloquer();
+  fermerPave(true);
+  if (L.s.repos) { L.s.repos = null; sauver(); majRepos(); } // une série commence : le repos est fini
+  const f = fantomeDe(it, j);
+  C = { i, j, debut: Date.now() + DECOMPTE * 1000, cible: f && f.sec > 0 ? f.sec : 0, battu: false, bip: null, raf: 0, txt: {} };
+  $("chrono-titre").textContent = exo(it.ex).nom;
+  $("chrono-sous").textContent = `Série ${j + 1} sur ${it.series.length}`;
+  const c = $("chrono"), arc = $("chrono-arc");
+  c.classList.remove("go", "battu");
+  arc.style.strokeDasharray = TOUR_CHRONO;
+  arc.style.strokeDashoffset = 0;
+  c.hidden = false;
+  document.body.classList.add("bloque");
+  requestAnimationFrame(() => requestAnimationFrame(() => { if (C) c.classList.add("ouvert"); }));
+  tourChrono();
+}
+function ecrireChrono(id, t) {
+  if (C.txt[id] === t) return;
+  C.txt[id] = t;
+  $(id).textContent = t;
+}
+function tourChrono() {
+  if (!C) return;
+  const ms = Date.now() - C.debut;
+  const c = $("chrono"), arc = $("chrono-arc");
+  if (ms < 0) {
+    // 3, 2, 1 : le temps de se mettre en position.
+    const n = Math.ceil(-ms / 1000);
+    if (C.bip !== n) { C.bip = n; Sons.bip(false); vibrer(8); ecrireChrono("chrono-temps", String(n)); rejouer($("chrono-temps"), "tic"); }
+    ecrireChrono("chrono-etat", "En position");
+    ecrireChrono("chrono-cible", C.cible ? `À battre : ${fmtTemps(C.cible)}` : "Tiens le plus longtemps possible");
+    arc.style.strokeDashoffset = TOUR_CHRONO * (1 + ms / (DECOMPTE * 1000));
+  } else {
+    const s = Math.floor(ms / 1000);
+    if (C.bip !== 0) { C.bip = 0; c.classList.add("go"); Sons.bip(true); vibrer(25); rejouer($("chrono-temps"), "tic"); }
+    if (C.cible && !C.battu && s > C.cible) {
+      C.battu = true;
+      c.classList.add("battu");
+      Sons.serie("plus", 3);
+      vibrer(30);
+      etincelles($("chrono-temps"), "#3ddc84");
+    }
+    ecrireChrono("chrono-temps", fmtTemps(s));
+    ecrireChrono("chrono-etat", C.battu ? "Dernière fois battue" : "Tiens bon");
+    ecrireChrono("chrono-cible", !C.cible ? "Touche Stop quand tu lâches" : C.battu ? `+${fmtTemps(s - C.cible)} sur la dernière fois` : `À battre : ${fmtTemps(C.cible)}`);
+    // L'anneau se remplit jusqu'à la dernière fois ; sans repère, il fait un tour par minute.
+    const part = C.cible ? Math.min(1, ms / (C.cible * 1000)) : (ms % 60000) / 60000;
+    arc.style.strokeDashoffset = TOUR_CHRONO * (1 - part);
+  }
+  C.raf = requestAnimationFrame(tourChrono);
+}
+function fermerChrono() {
+  if (!C) return;
+  cancelAnimationFrame(C.raf);
+  C = null;
+  const c = $("chrono");
+  c.classList.remove("ouvert");
+  if (!Feuille.ouverte && $("fete").hidden) document.body.classList.remove("bloque");
+  setTimeout(() => { if (!C) c.hidden = true; }, 300);
+}
+// Stop : la durée tenue est notée et la série validée (couleur, record, repos).
+function arreterChrono() {
+  if (!C) return;
+  const ms = Date.now() - C.debut, { i, j } = C;
+  fermerChrono();
+  if (ms < 1000 || !L) return; // arrêté pendant le décompte : rien n'est noté
+  const it = L.s.items[i], x = it && it.series[j];
+  if (!x) return;
+  const deja = x.fait;
+  x.sec = Math.floor(ms / 1000);
+  x.fait = true;
+  apresValidation(i, j, deja);
+}
+function annulerChrono() {
+  if (C && Date.now() - C.debut > 3000 && !confirm("Arrêter le chrono sans noter cette série ?")) return;
+  fermerChrono();
+}
+
+/* ---------- Maintenir une case puis glisser vers le bas : sa valeur va dans les séries suivantes ---------- */
+
+const Remplir = (() => {
+  const DELAI = 380, BOUGE = 8;
+  let attente = null; // appui pas encore assez long : { c, x0, y0, minuterie }
+  let G = null;       // geste en cours : { i, j, champ, valeur, carte, ancien, jusqua, y, raf }
+  let bloque = 0;     // jusqu'à quand le « clic » qui suit un geste est ignoré (il n'ouvre pas le pavé)
+
+  function appui(c, x, y) {
+    lacher();
+    if (!L || G || C) return;
+    attente = { c, x0: x, y0: y, minuterie: setTimeout(commencer, DELAI) };
+  }
+  function lacher() { if (attente) { clearTimeout(attente.minuterie); attente = null; } }
+  // Renvoie vrai pendant le geste (la page ne doit alors pas défiler).
+  function bouge(x, y) {
+    if (G) { G.y = y; return true; }
+    if (attente && Math.hypot(x - attente.x0, y - attente.y0) > BOUGE) lacher(); // on fait défiler la page
+    return false;
+  }
+  function commencer() {
+    const a = attente;
+    attente = null;
+    if (!a || !L || !document.contains(a.c)) return;
+    const l = a.c.closest(".ligne"), champ = a.c.dataset.champ;
+    const i = +l.dataset.i, j = +l.dataset.j, it = L.s.items[i];
+    const x = it && it.series[j];
+    if (!x || !champ) return;
+    const valeur = x[champ];
+    if (valeur == null || (champ !== "kg" && !(valeur > 0))) {
+      // Rien à copier : le pavé s'ouvre sur la case (le clic qui suit l'appui n'est pas bloqué).
+      secouer(i, j);
+      toast(`Tape d'abord ${champ === "kg" ? "la charge" : champ === "sec" ? "la durée" : "les reps"}, puis maintiens la case et glisse vers le bas`, { icone: "↓", duree: 3500 });
+      return;
+    }
+    // Le pavé se range sans redessiner la ligne : la case touchée doit rester en place pendant le geste.
+    const ancien = L.actif;
+    if (ancien) fermerPave(false, { garderLigne: true });
+    for (const c of document.querySelectorAll("#seance-liste .cellule.actif")) c.classList.remove("actif");
+    G = { i, j, champ, valeur, carte: a.c.closest(".carte-ex"), ancien, jusqua: j, y: a.y0, raf: 0 };
+    a.c.classList.add("source");
+    G.carte.classList.add("remplissage");
+    document.body.classList.add("remplit");
+    vibrer(15);
+    Sons.cran(0);
+    G.raf = requestAnimationFrame(tour);
+  }
+  function tour() {
+    if (!G) return;
+    // Près du bord de l'écran, la page défile toute seule jusqu'aux séries plus bas.
+    const bas = innerHeight - 64;
+    const haut = document.querySelector(".seance-haut").getBoundingClientRect().bottom + 24;
+    if (G.y > bas) window.scrollBy(0, Math.min(16, 2 + (G.y - bas) / 3));
+    else if (G.y < haut && window.scrollY > 0) window.scrollBy(0, -Math.min(16, 2 + (haut - G.y) / 3));
+    portee();
+    G.raf = requestAnimationFrame(tour);
+  }
+  // Jusqu'où va la copie : chaque série dont le doigt a passé le haut.
+  function portee() {
+    const lignes = G.carte.querySelectorAll(".ligne");
+    let k = G.j;
+    for (const l of lignes) {
+      const jj = +l.dataset.j;
+      if (jj <= G.j) continue;
+      const r = l.getBoundingClientRect();
+      if (G.y >= r.top + r.height * 0.25) k = Math.max(k, jj);
+    }
+    if (k === G.jusqua) return;
+    if (k > G.jusqua) { vibrer(6); Sons.cran(k - G.j); }
+    G.jusqua = k;
+    const t = texteValeur(G.champ, G.valeur);
+    for (const l of lignes) {
+      const jj = +l.dataset.j, c = l.querySelector(`.cellule[data-champ="${G.champ}"]`);
+      if (!c) continue;
+      const dedans = jj > G.j && jj <= k;
+      c.classList.toggle("apercu", dedans);
+      if (dedans) c.dataset.apercu = t; else delete c.dataset.apercu;
+    }
+  }
+  // Renvoie vrai si un geste était en cours.
+  function finir(appliquer) {
+    lacher();
+    if (!G) return false;
+    cancelAnimationFrame(G.raf);
+    const g = G;
+    G = null;
+    bloque = Date.now() + 800;
+    document.body.classList.remove("remplit");
+    if (!L) return true;
+    if (!$("pave").classList.contains("ouvert")) $("vue-seance").style.paddingBottom = "";
+    if (g.ancien && g.ancien.i !== g.i) majLigne(g.ancien.i, g.ancien.j);
+    if (appliquer && g.jusqua > g.j) appliquerRemplissage(g.i, g.j, g.champ, g.valeur, g.jusqua);
+    else majCarte(g.i);
+    return true;
+  }
+  return {
+    appui, bouge, finir, lacher,
+    get actif() { return !!G; },
+    // Un nouveau toucher commence : son clic à lui doit passer.
+    nouveau() { bloque = 0; },
+    // Le clic qui suit un geste : à ignorer (une seule fois).
+    clicAIgnorer() { const oui = Date.now() < bloque; bloque = 0; return oui; },
+  };
+})();
+
+function appliquerRemplissage(i, j, champ, valeur, jusqua) {
+  const it = L.s.items[i];
+  const avant = [];
+  for (let k = j + 1; k <= jusqua && k < it.series.length; k++) {
+    const x = it.series[k];
+    avant.push({ x, v: x[champ], fait: x.fait });
+    x[champ] = valeur;
+  }
+  sauver();
+  majCarte(i);
+  majInfo();
+  const n = avant.length;
+  if (!n) return;
+  for (let k = j + 1; k <= j + n; k++) rejouer(document.querySelector(`#seance-liste .ligne[data-i="${i}"][data-j="${k}"] .cellule[data-champ="${champ}"]`), "rempli");
+  Sons.remplir(n);
+  vibrer(14);
+  const quoi = champ === "kg" ? (valeur === 0 ? "Poids du corps appliqué" : `${fmtKg(valeur)} kg appliqués`)
+    : champ === "sec" ? `${fmtTemps(valeur)} appliquée` : `${valeur} ${valeur > 1 ? "reps appliquées" : "rep appliquée"}`;
+  toast(`${quoi} ${n > 1 ? `aux ${n} séries suivantes` : "à la série suivante"}`, {
+    icone: "↓", action: "Annuler",
+    surAction: () => {
+      if (!L || L.s.items[i] !== it) return;
+      for (const a of avant) { a.x[champ] = a.v; a.x.fait = a.fait; }
+      sauver();
+      majCarte(i);
+      majInfo();
+    },
+  });
+}
+// Les deux premières fois qu'une charge est tapée en haut d'un exercice : le geste est rappelé.
+function astuceRemplir(it, champ) {
+  if (it.series.length < 2 || !it.series.slice(1).every((x) => x[champ] == null && !x.fait)) return;
+  let vu = 0;
+  try { vu = Number(localStorage.getItem("salle.astuce-glisser")) || 0; } catch (e) {}
+  if (vu >= 2) return;
+  try { localStorage.setItem("salle.astuce-glisser", String(vu + 1)); } catch (e) {}
+  setTimeout(() => toast("Astuce : maintiens une case puis glisse vers le bas pour la copier dans les séries suivantes", { icone: "↓", duree: 5000 }), 300);
 }
 
 /* ---------- Repos ---------- */
@@ -1422,7 +1730,7 @@ function nettoyer(s) {
   return {
     ...reste,
     items: s.items
-      .map((it) => ({ ...it, series: it.series.filter((x) => x.reps > 0).map(({ fait, ...x }) => x) }))
+      .map((it) => ({ ...it, series: it.series.filter(faite).map(({ fait, ...x }) => x) }))
       .filter((it) => it.series.length),
   };
 }
@@ -1430,12 +1738,12 @@ function terminer() {
   fermerPave(true);
   const s = L.s;
   let faites = 0, vides = 0;
-  for (const it of s.items) for (const x of it.series) { if (x.reps > 0) faites++; else vides++; }
+  for (const it of s.items) for (const x of it.series) { if (faite(x)) faites++; else vides++; }
   if (!faites) {
     if (confirm("Aucune série notée pour l'instant.\n\nAbandonner cette séance ?")) abandonner(true);
     return;
   }
-  if (vides && !confirm(`${pluriel(vides, "série")} sans répétitions : ${vides > 1 ? "elles ne seront pas enregistrées" : "elle ne sera pas enregistrée"}.\n\nTerminer la séance ?`)) return;
+  if (vides && !confirm(`${vides > 1 ? `${vides} séries pas faites` : "1 série pas faite"} : ${vides > 1 ? "elles ne seront pas enregistrées" : "elle ne sera pas enregistrée"}.\n\nTerminer la séance ?`)) return;
   const structure = s.items.map((it) => ({ ex: it.ex, series: it.series.length, repos: it.repos }));
   const finie = nettoyer({ ...s, fin: new Date().toISOString() });
   donnees.seances.push(finie);
@@ -1448,7 +1756,7 @@ function terminer() {
 }
 function abandonner(sansConfirmer) {
   const s = L.s;
-  const n = s.items.reduce((t, it) => t + it.series.filter((x) => x.reps > 0).length, 0);
+  const n = s.items.reduce((t, it) => t + it.series.filter(faite).length, 0);
   if (!sansConfirmer && !confirm(n ? `Abandonner la séance ?\n\n${n > 1 ? `Les ${n} séries notées seront perdues.` : "La série notée sera perdue."}` : "Abandonner cette séance ?")) return;
   donnees.enCours = null;
   sauver();
@@ -1459,7 +1767,7 @@ function modifierSeance(id) {
   const s = donnees.seances.find((x) => x.id === id);
   if (!s) return;
   const copie = JSON.parse(JSON.stringify(s));
-  for (const it of copie.items) for (const x of it.series) x.fait = x.reps > 0;
+  for (const it of copie.items) for (const x of it.series) x.fait = faite(x);
   Feuille.fermer();
   ouvrirLogger(copie, "edition");
 }
@@ -1551,7 +1859,9 @@ function montrerBilan(s, structure) {
     el("p", { class: "fete-phrase" }, phraseBilan(r)),
     el("div", { class: "tuiles trois" },
       tuile("chrono", fmtDuree(r.duree), "de séance"),
-      tuile("haltere", fmtTonnage(r.tonnage), delta != null && Math.round(delta) > 0 ? `soulevés · ${fmtPct(delta)}` : "soulevés", delta != null && Math.round(delta) > 0 ? "vert" : ""),
+      r.tonnage > 0 || !r.tenu
+        ? tuile("haltere", fmtTonnage(r.tonnage), delta != null && Math.round(delta) > 0 ? `soulevés · ${fmtPct(delta)}` : "soulevés", delta != null && Math.round(delta) > 0 ? "vert" : "")
+        : tuile("chrono", fmtTemps(r.tenu), "tenues"),
       r.plus
         ? tuile("haut", String(r.plus), r.plus > 1 ? "séries en progrès" : "série en progrès", "vert")
         : tuile("coche", String(r.series), r.series > 1 ? "séries notées" : "série notée")),
@@ -1595,11 +1905,12 @@ function etincelle(vals) {
   return el("span", { html: `<svg class="etincelle-svg" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="M${pts.map((p) => p.join(",")).join("L")}" style="stroke:${tendance}"/><circle cx="${der[0]}" cy="${der[1]}" r="3.5" style="fill:${tendance}"/></svg>` });
 }
 const estPDC = (l) => l.length > 0 && l.every((x) => x.charge === 0);
+const estAuTemps = (id, l) => enTemps(id) || l.some((x) => x.temps > 0);
 
 function ligneExercice(e) {
   const l = A.parEx[e.id] || [];
   const der = l[l.length - 1];
-  const cle = estPDC(l) ? "reps" : "force";
+  const cle = estAuTemps(e.id, l) ? "temps" : estPDC(l) ? "reps" : "force";
   const vals = l.map((x) => x[cle]);
   const pct = vals.length > 1 && vals[0] > 0 ? (vals[vals.length - 1] / vals[0] - 1) * 100 : null;
   return el("button", { class: "ligne-ex", onclick: () => ouvrirExercice(e.id) },
@@ -1635,33 +1946,69 @@ function rendreExercices() {
   remplir(l, ...blocs);
 }
 
+// Le type d'un exercice (charge ou temps) ne change plus une fois qu'il a des séries notées :
+// ses courbes et ses records n'auraient plus de sens.
+function typeVerrouille(id) {
+  if (!id) return false;
+  if ((A.parEx[id] || []).length) return true;
+  const ec = donnees.enCours;
+  return !!ec && ec.items.some((it) => it.ex === id && it.series.some(faite));
+}
 function editerExercice(id, nomInitial = "") {
   const e = id ? exo(id) : null;
-  const etat = { nom: e ? e.nom : nomInitial, groupe: e ? e.groupe : devinerGroupe(nomInitial), groupeChoisi: !!e, pas: e && e.pas > 0 ? e.pas : null };
+  const etat = {
+    nom: e ? e.nom : nomInitial, groupe: e ? e.groupe : devinerGroupe(nomInitial), groupeChoisi: !!e,
+    type: e ? (e.type === "temps" ? "temps" : "charge") : devinerType(nomInitial), typeChoisi: !!e,
+    pas: e && e.pas > 0 ? e.pas : null, pasSec: e && e.pasSec > 0 ? e.pasSec : null,
+  };
   ouvrirOuEmpiler(() => rendreEditeurEx(id, etat));
 }
 function rendreEditeurEx(id, etat) {
+  const verrou = typeVerrouille(id);
   const puces = el("div", { class: "puces" });
   const majPuces = () => remplir(puces, ...GROUPES.map((g) => el("button", {
     class: "puce" + (etat.groupe === g.id ? " choisie" : ""),
     onclick: () => { etat.groupe = g.id; etat.groupeChoisi = true; majPuces(); },
   }, g.nom)));
   majPuces();
+  const types = el("div", { class: "segments types" + (verrou ? " verrou" : ""), role: "radiogroup", "aria-label": "Type d'exercice" });
   const pas = el("div", { class: "puces" });
-  const majPas = () => remplir(pas, ...[null, 1, 1.25, 2, 2.5, 5].map((v) => el("button", {
-    class: "puce" + (etat.pas === v ? " choisie" : ""),
-    onclick: () => { etat.pas = v; majPas(); },
-  }, v === null ? `Réglage général (${fmtKg(donnees.reglages.pas)} kg)` : `${fmtKg(v)} kg`)));
+  const majPas = () => remplir(pas, ...(etat.type === "temps"
+    ? [null, 10, 15, 30].map((v) => el("button", {
+      class: "puce" + (etat.pasSec === v ? " choisie" : ""),
+      onclick: () => { etat.pasSec = v; majPas(); },
+    }, v === null ? `${PAS_SEC} s` : `${v} s`))
+    : [null, 1, 1.25, 2, 2.5, 5].map((v) => el("button", {
+      class: "puce" + (etat.pas === v ? " choisie" : ""),
+      onclick: () => { etat.pas = v; majPas(); },
+    }, v === null ? `Réglage général (${fmtKg(donnees.reglages.pas)} kg)` : `${fmtKg(v)} kg`))));
+  const aideType = el("p", { class: "aide", style: "margin: 8px 4px 0" });
+  const majTypes = () => {
+    remplir(types, ...[["charge", "haltere", "Charge × reps"], ["temps", "chrono", "Au temps"]].map(([t, ic, nom]) => el("button", {
+      class: etat.type === t ? "actif" : "", role: "radio", "aria-checked": etat.type === t ? "true" : "false", disabled: verrou && etat.type !== t,
+      onclick: () => { if (verrou || etat.type === t) return; etat.type = t; etat.typeChoisi = true; majTypes(); majPas(); },
+    }, icone(ic), nom)));
+    aideType.textContent = verrou
+      ? "Cet exercice a déjà des séries notées : son type ne change plus. Pour l'autre type, crée un nouvel exercice."
+      : etat.type === "temps" ? "Pour le gainage, la chaise, la suspension… : tu notes la durée tenue, avec un chrono intégré."
+        : "Le poids et le nombre de répétitions de chaque série.";
+  };
+  majTypes();
   majPas();
   const champ = el("input", {
     class: "champ", value: etat.nom, placeholder: "Ex. Développé couché haltères", maxlength: "60",
     autocapitalize: "sentences", autocomplete: "off", enterkeyhint: "done",
-    oninput: (ev) => { etat.nom = ev.target.value; if (!etat.groupeChoisi) { etat.groupe = devinerGroupe(etat.nom); majPuces(); } },
+    oninput: (ev) => {
+      etat.nom = ev.target.value;
+      if (!etat.groupeChoisi) { etat.groupe = devinerGroupe(etat.nom); majPuces(); }
+      if (!etat.typeChoisi && !verrou) { const t = devinerType(etat.nom); if (t !== etat.type) { etat.type = t; majTypes(); majPas(); } }
+    },
     onkeydown: (ev) => { if (ev.key === "Enter") { ev.preventDefault(); ev.target.blur(); } },
   });
   return [
     tete(id ? "Modifier l'exercice" : "Nouvel exercice"),
     el("label", { class: "champ-etiquette" }, "Nom"), champ,
+    el("p", { class: "champ-etiquette" }, "Ce que tu notes"), types, aideType,
     el("p", { class: "champ-etiquette" }, "Groupe musculaire"), puces,
     el("p", { class: "champ-etiquette" }, "Boutons − et + du pavé"), pas,
     id ? el("button", { class: "bouton danger", style: "margin-top:20px", onclick: () => supprimerExercice(id) }, "Supprimer cet exercice") : null,
@@ -1673,14 +2020,16 @@ function enregistrerExercice(id, etat) {
   if (!nom) { toast("Donne un nom à l'exercice", { rouge: true, icone: "!" }); return; }
   const autre = donnees.exercices.find((e) => e.id !== id && !e.supprime && sansAccents(e.nom) === sansAccents(nom));
   if (autre) { toast("Cet exercice existe déjà", { rouge: true, icone: "!" }); return; }
+  const regler = (e) => {
+    e.groupe = etat.groupe;
+    if (!typeVerrouille(e.id)) { if (etat.type === "temps") e.type = "temps"; else delete e.type; }
+    if (etat.pas) e.pas = etat.pas; else delete e.pas;
+    if (etat.pasSec) e.pasSec = etat.pasSec; else delete e.pasSec;
+  };
   if (id) {
     const e = donnees.exercices.find((x) => x.id === id);
-    if (e) { e.nom = nom; e.groupe = etat.groupe; if (etat.pas) e.pas = etat.pas; else delete e.pas; }
-  } else {
-    const e = creerExercice(nom, etat.groupe);
-    e.groupe = etat.groupe;
-    if (etat.pas) e.pas = etat.pas;
-  }
+    if (e) { e.nom = nom; regler(e); }
+  } else regler(creerExercice(nom, etat.groupe, etat.type));
   sauver();
   Feuille.retour();
   if (L) rendreLogger(); else rendre();
@@ -1735,6 +2084,8 @@ const METRIQUES = {
   volume: { nom: "Volume", unite: "kg", legende: "Tout ce que tu as soulevé sur l'exercice (poids × reps)", fmt: (v) => nombre.format(Math.round(v)) },
   reps: { nom: "Reps max", unite: "reps", legende: "Ta meilleure série au poids du corps", fmt: (v) => nombre.format(v) },
   total: { nom: "Reps totales", unite: "reps", legende: "Toutes tes répétitions de la séance", fmt: (v) => nombre.format(v) },
+  temps: { nom: "Temps max", unite: "", legende: "Ta série tenue le plus longtemps", fmt: fmtTemps },
+  cumul: { nom: "Temps total", unite: "", legende: "Tout le temps tenu sur la séance, séries additionnées", fmt: fmtTemps },
 };
 let metriqueVue = "force";
 
@@ -1745,7 +2096,7 @@ function courbe(l, cle, largeur) {
   const n = vals.length;
   let min = Math.min(...vals), max = Math.max(...vals);
   // Lignes de repère : min, milieu arrondi (pas de « 9,5 reps »), max ; une seule si tout est égal.
-  const pasGrille = cle === "reps" || cle === "total" || cle === "volume" ? 1 : 0.5;
+  const pasGrille = cle === "temps" || cle === "cumul" ? 5 : cle === "reps" || cle === "total" || cle === "volume" ? 1 : 0.5;
   const milieu = Math.round((min + max) / 2 / pasGrille) * pasGrille;
   const niveaux = max === min ? [min] : milieu > min && milieu < max ? [min, milieu, max] : [min, max];
   if (max === min) { min = min - Math.max(1, min * 0.1); max = max + Math.max(1, max * 0.1); }
@@ -1792,7 +2143,7 @@ function courbe(l, cle, largeur) {
     const p = pts[i], e = l[i];
     repere.setAttribute("x1", p.x); repere.setAttribute("x2", p.x); repere.setAttribute("visibility", "visible");
     bulle.hidden = false;
-    remplir(bulle, el("b", {}, `${M.fmt(vals[i])} ${M.unite}`), `${fmtCourt.format(new Date(e.date))} · ${fmtSerie(e.top)}`);
+    remplir(bulle, el("b", {}, `${M.fmt(vals[i])}${M.unite ? " " + M.unite : ""}`), `${fmtCourt.format(new Date(e.date))} · ${fmtSerie(e.top)}`);
     const px = (p.x / W) * r.width;
     bulle.style.left = `${borne(px, 70, r.width - 70)}px`;
     bulle.style.top = `${(p.y / H) * r.height}px`;
@@ -1810,14 +2161,15 @@ function ouvrirExercice(id) {
 function rendreExercice(id) {
   const e = exo(id);
   const l = A.parEx[id] || [];
-  const pdc = estPDC(l);
-  const cles = pdc ? ["reps", "total"] : ["force", "charge", "volume"];
+  const temps = estAuTemps(id, l);
+  const pdc = !temps && estPDC(l);
+  const cles = temps ? ["temps", "cumul"] : pdc ? ["reps", "total"] : ["force", "charge", "volume"];
   if (!cles.includes(metriqueVue)) metriqueVue = cles[0];
   const M = METRIQUES[metriqueVue];
   // Largeur réelle du panneau (max 560 px, 18 px de marge de chaque côté) : le texte du graphique garde sa taille.
   const largeur = Math.min(window.innerWidth || 390, 560) - 36 + 8;
   const modifier = e.supprime ? null : el("button", { class: "rond petit", "aria-label": "Modifier l'exercice", onclick: () => editerExercice(id) }, icone("crayon"));
-  const haut = [tete(e.nom, { action: modifier }), el("p", { class: "f-sous" }, `${nomGroupe(e.groupe)}${l.length ? " · " + pluriel(l.length, "séance") : ""}`)];
+  const haut = [tete(e.nom, { action: modifier }), el("p", { class: "f-sous" }, `${nomGroupe(e.groupe)}${temps ? " · au temps" : ""}${l.length ? " · " + pluriel(l.length, "séance") : ""}`)];
   if (!l.length) {
     return [...haut, el("div", { class: "courbe-vide" }, "Pas encore de série pour cet exercice.", el("br"), "Ajoute-le à une séance : ta courbe de progression apparaîtra ici dès la deuxième fois.")];
   }
@@ -1829,7 +2181,9 @@ function rendreExercice(id) {
     onclick: () => { metriqueVue = k; Feuille.rafraichir(); },
   }, METRIQUES[k].nom)));
   const meilleur = (cle) => l.reduce((a, x) => (x[cle] > a[cle] ? x : a));
-  const tuiles = pdc
+  const tuiles = temps
+    ? [tuile("couronne", fmtTemps(meilleur("temps").temps), "temps max en une série", "or"), tuile("chrono", fmtTemps(meilleur("cumul").cumul), "tenues sur une séance"), tuile("calendrier", String(l.length), l.length > 1 ? "séances" : "séance")]
+    : pdc
     ? [tuile("couronne", `${meilleur("reps").reps}`, "reps max en une série", "or"), tuile("haut", nombre.format(meilleur("total").total), "reps sur une séance"), tuile("calendrier", String(l.length), l.length > 1 ? "séances" : "séance")]
     : [tuile("couronne", `${fmtKg(meilleur("charge").charge)} kg`, "charge max", "or"), tuile("courbe", `${METRIQUES.force.fmt(meilleur("force").force)} kg`, "1RM estimé"), tuile("haltere", fmtTonnage(meilleur("volume").volume), "meilleur volume")];
   // Historique : chaque série comparée à la séance d'avant, couronne si record.
@@ -1844,7 +2198,7 @@ function rendreExercice(id) {
       if (mm) majMeilleurs(mm, y);
       return el("span", { class: `serie-puce${v && v !== "egal" ? " " + v : ""}${rec ? " record" : ""}` }, rec ? icone("couronne") : null, fmtSerie(y));
     });
-    m = m || { kg: 0, e1rm: 0, reps0: 0 };
+    m = m || meilleursVides();
     for (const y of x.series) majMeilleurs(m, y);
     lignes.push(el("button", { class: "histo-ex", style: "width:100%;text-align:left", onclick: () => ouvrirSeance(x.s.id) },
       el("span", { class: "he-date" }, fmtCourt.format(new Date(x.date))), el("span", { class: "he-series" }, ...puces)));
@@ -1853,7 +2207,7 @@ function rendreExercice(id) {
     ...haut,
     segments,
     el("div", { class: "titre-courbe" },
-      el("div", {}, el("div", { class: "gros" }, M.fmt(der), el("small", {}, M.unite)), el("p", { class: "legende-courbe" }, M.legende)),
+      el("div", {}, el("div", { class: "gros" }, M.fmt(der), M.unite ? el("small", {}, M.unite) : null), el("p", { class: "legende-courbe" }, M.legende)),
       pct != null ? badgePct(pct) : null),
     l.length > 1 ? courbe(l, metriqueVue, largeur) : el("div", { class: "courbe-vide" }, "Encore une séance avec cet exercice et ta courbe démarre."),
     pct != null ? el("p", { class: "aide centre", style: "margin-top:6px" }, `${fmtPct(pct)} depuis ta première fois, ${fmtJourMois.format(new Date(l[0].date))}`) : null,
@@ -1895,7 +2249,7 @@ function rendreSeanceDetail(id) {
     el("p", { class: "f-sous" }, `${majuscule(fmtLong.format(d))} · ${fmtHeure.format(d)}`),
     el("div", { class: "tuiles trois" },
       tuile("chrono", fmtDuree(r.duree), "de séance"),
-      tuile("haltere", fmtTonnage(r.tonnage), "soulevés"),
+      r.tonnage > 0 || !r.tenu ? tuile("haltere", fmtTonnage(r.tonnage), "soulevés") : tuile("chrono", fmtTemps(r.tenu), "tenues"),
       tuile(r.records.length ? "couronne" : "haut", r.records.length ? String(r.records.length) : String(r.plus), r.records.length ? (r.records.length > 1 ? "records" : "record") : r.plus > 1 ? "séries en progrès" : "série en progrès", r.records.length ? "or" : "")),
     el("p", { class: "titre-section" }, "Exercices"),
     el("div", { class: "carte" }, ...blocs),
@@ -2008,10 +2362,14 @@ function rendreReglages() {
     el("p", { class: "titre-section" }, "Les couleurs de la séance"),
     el("div", { class: "bloc legende" },
       el("div", {}, el("span", { class: "echantillon", style: "color:var(--fantome)" }, "8"), el("span", {}, el("b", {}, "En transparence"), " : ce que tu as fait la dernière fois. Touche ✓ sans rien taper pour refaire pareil.")),
-      el("div", {}, el("span", { class: "echantillon vert" }, "9"), el("span", {}, el("b", {}, "Vert"), " : plus lourd que la dernière fois, ou plus de reps au même poids.")),
-      el("div", {}, el("span", { class: "echantillon rouge" }, "7"), el("span", {}, el("b", {}, "Rouge"), " : plus léger, ou moins de reps au même poids.")),
+      el("div", {}, el("span", { class: "echantillon vert" }, "9"), el("span", {}, el("b", {}, "Vert"), " : plus lourd que la dernière fois, plus de reps au même poids, ou tenu plus longtemps.")),
+      el("div", {}, el("span", { class: "echantillon rouge" }, "7"), el("span", {}, el("b", {}, "Rouge"), " : plus léger, moins de reps au même poids, ou tenu moins longtemps.")),
       el("div", {}, el("span", { class: "echantillon" }, "8"), el("span", {}, el("b", {}, "Normal"), " : pareil que la dernière fois.")),
-      el("div", {}, el("span", { class: "echantillon or" }, icone("couronne")), el("span", {}, el("b", {}, "Couronne"), " : record battu (charge, 1RM estimé ou reps)."))),
+      el("div", {}, el("span", { class: "echantillon or" }, icone("couronne")), el("span", {}, el("b", {}, "Couronne"), " : record battu (charge, 1RM estimé, reps ou temps)."))),
+    el("p", { class: "titre-section" }, "Les gestes"),
+    el("div", { class: "bloc legende" },
+      el("div", {}, el("span", { class: "echantillon violet" }, icone("glisser")), el("span", {}, el("b", {}, "Maintiens une case puis glisse vers le bas"), " : sa charge, ses reps ou sa durée vont dans les séries suivantes.")),
+      el("div", {}, el("span", { class: "echantillon violet" }, icone("lecture")), el("span", {}, el("b", {}, "Exercice au temps"), " (gainage…) : ▶ lance le chrono, Stop note la durée et valide la série."))),
     el("p", { class: "aide centre", style: "margin-top:18px" }, "Tes données restent sur ce téléphone. Active Google Drive pour en garder une copie chaque jour."),
   ];
 }
@@ -2105,12 +2463,47 @@ function demarrerApp() {
   $("repos-plus").addEventListener("click", () => ajusterRepos(15));
   $("repos-passer").addEventListener("click", () => { if (L) { L.s.repos = null; sauver(); majRepos(); } });
   for (const b of $("pave").querySelectorAll("[data-k]")) b.addEventListener("click", () => touche(b.dataset.k));
+  $("chrono-stop").addEventListener("click", arreterChrono);
+  $("chrono-annuler").addEventListener("click", annulerChrono);
   $("fichier").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) importer(f); });
+
+  // Maintenir une case puis glisser vers le bas (au doigt, ou à la souris sur ordinateur).
+  const liste = $("seance-liste");
+  liste.addEventListener("touchstart", (e) => {
+    const c = e.touches.length === 1 ? e.target.closest(".cellule") : null;
+    if (c) Remplir.appui(c, e.touches[0].clientX, e.touches[0].clientY); else Remplir.finir(false);
+  }, { passive: true });
+  document.addEventListener("touchmove", (e) => {
+    const t = e.touches[0];
+    if (t && Remplir.bouge(t.clientX, t.clientY) && e.cancelable) e.preventDefault(); // pendant le geste, la page ne défile pas
+  }, { passive: false });
+  document.addEventListener("touchend", (e) => { if (Remplir.finir(true) && e.cancelable) e.preventDefault(); }, { passive: false });
+  document.addEventListener("touchcancel", () => Remplir.finir(false));
+  liste.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    const c = e.target.closest(".cellule");
+    if (c) Remplir.appui(c, e.clientX, e.clientY);
+  });
+  document.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse") Remplir.bouge(e.clientX, e.clientY); });
+  document.addEventListener("pointerup", (e) => { if (e.pointerType === "mouse") Remplir.finir(true); });
+  liste.addEventListener("contextmenu", (e) => { if (e.target.closest(".cellule")) e.preventDefault(); });
+  // Le « clic » qui suit un appui long n'ouvre pas le pavé ; celui d'un nouveau toucher, si.
+  document.addEventListener("pointerdown", () => Remplir.nouveau(), true);
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("#seance-liste") && Remplir.clicAIgnorer()) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
+
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") { if (!$("fete").hidden) fermerBilan(); else if (Feuille.ouverte) Feuille.fermer(); else if (L && L.actif) fermerPave(); return; }
+    if (e.key === "Escape") {
+      if (C) annulerChrono();
+      else if (!$("fete").hidden) fermerBilan(); else if (Feuille.ouverte) Feuille.fermer(); else if (L && L.actif) fermerPave();
+      return;
+    }
+    if (C) { if (e.key === " " || e.key === "Enter") { e.preventDefault(); arreterChrono(); } return; }
     // Au clavier d'ordinateur, le pavé suit aussi les touches.
     if (!L || !L.actif || Feuille.ouverte || e.target.closest("input")) return;
     const k = /^\d$/.test(e.key) ? e.key : e.key === "," || e.key === "." ? "virgule" : e.key === "Backspace" ? "effacer" : e.key === "Enter" || e.key === "Tab" ? "suivant" : null;
+    if (k === "virgule" && L.actif.champ === "sec") return; // pour une durée, la virgule du pavé lance le chrono
     if (k) { e.preventDefault(); touche(k); }
   });
   document.addEventListener("visibilitychange", () => {

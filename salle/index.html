@@ -8,10 +8,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Salle">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="theme-color" content="#f2f2f4" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)">
-  <meta name="color-scheme" content="light dark">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#08060e">
+  <meta name="color-scheme" content="dark">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -55,6 +54,7 @@
     <symbol id="i-calendrier" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17"/><path d="M8 3v4"/><path d="M16 3v4"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6v.2"/></symbol>
     <symbol id="i-boucle" viewBox="0 0 24 24"><path d="M20 11.5A8 8 0 1 0 17.7 17"/><path d="M20.5 5.5v6h-6"/></symbol>
+    <symbol id="i-glisser" viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="7.5" rx="2.6"/><path d="M12 13v8"/><path d="m8.4 17.6 3.6 3.6 3.6-3.6"/></symbol>
   </svg>
 
   <!-- ============ Séance (accueil) ============ -->
@@ -140,6 +140,26 @@
       <button data-k="suivant" id="pave-suivant" class="action">Suivant</button>
       <button data-k="virgule" id="pave-virgule">,</button><button data-k="0">0</button>
       <button data-k="effacer" aria-label="Effacer"><svg class="ico" aria-hidden="true"><use href="#i-effacer"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Chrono d'une série au temps (gainage…) -->
+  <div id="chrono" class="chrono" hidden role="dialog" aria-modal="true" aria-labelledby="chrono-titre">
+    <div class="chrono-fond"></div>
+    <div class="chrono-contenu">
+      <div class="chrono-tete">
+        <div class="chrono-titres"><b id="chrono-titre"></b><small id="chrono-sous"></small></div>
+        <button id="chrono-annuler" class="rond" aria-label="Annuler le chrono"><svg class="ico" aria-hidden="true"><use href="#i-croix"/></svg></button>
+      </div>
+      <div class="chrono-cadran">
+        <svg viewBox="0 0 260 260" aria-hidden="true"><circle class="piste" cx="130" cy="130" r="116"/><circle id="chrono-arc" class="arc" cx="130" cy="130" r="116"/></svg>
+        <div class="chrono-centre" aria-live="off">
+          <span id="chrono-etat" class="chrono-etat"></span>
+          <b id="chrono-temps" class="chrono-temps"></b>
+          <span id="chrono-cible" class="chrono-cible"></span>
+        </div>
+      </div>
+      <button id="chrono-stop" class="bouton principal chrono-stop">Stop</button>
     </div>
   </div>
 
