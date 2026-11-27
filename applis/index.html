@@ -175,8 +175,8 @@ const APPLIS = [
     sauvegarde: ["drive"], ou: "⚙️ Réglages → Sauvegarde Google Drive. Le journal secret revient aussi, il faudra ton ancien code à 6 chiffres." },
   { nom: "Maxilla", dossier: "maxilla/", desc: "Tes exercices et le défi de 180 jours.", accent: "#b39af7",
     sauvegarde: ["drive", "github"], ou: "Progrès → Réglages → Google Drive (ou Sauvegarde GitHub, dépôt mes-donnees)." },
-  { nom: "Salle", dossier: "salle/", desc: "Ton suivi de musculation.", accent: "#e0475b", emoji: "🏋️",
-    sauvegarde: null, ou: "" },
+  { nom: "Salle", dossier: "salle/", desc: "Ton suivi de musculation.", accent: "#17b866", emoji: "🏋️", bientot: true,
+    sauvegarde: ["drive"], ou: "Séance → bouton réglages en haut à droite → Google Drive. Tu peux aussi importer un fichier exporté." },
 ];
 
 const base = new URL("../", location.href);
@@ -212,9 +212,9 @@ function ligneSauvegarde(a) {
   return li;
 }
 
-// Une appli encore en préparation (ex. Salle) s'affiche en « Bientôt » jusqu'à sa mise en ligne.
+// Une appli marquée bientot (ex. Salle) s'affiche en « Bientôt » tant que son manifeste n'est pas en ligne.
 async function existe(a) {
-  if (a.sauvegarde !== null) return true;
+  if (!a.bientot) return true;
   try {
     const r = await fetch(new URL(a.dossier + "manifest.webmanifest", base), { method: "HEAD", cache: "no-store" });
     return r.ok;
@@ -226,7 +226,7 @@ async function existe(a) {
   const dispo = await Promise.all(APPLIS.map(existe));
   liste.replaceChildren(...APPLIS.map((a, i) => carte(a, dispo[i])));
   document.getElementById("sauvegardes").replaceChildren(
-    ...APPLIS.filter((a, i) => dispo[i] && a.sauvegarde !== null).map(ligneSauvegarde));
+    ...APPLIS.filter((a, i) => dispo[i]).map(ligneSauvegarde));
 })();
 
 document.getElementById("adresse").textContent = location.host
