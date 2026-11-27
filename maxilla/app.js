@@ -1023,6 +1023,7 @@ function carteReglages() {
     el("span", { class: "tuile-ico", html: ico(icone) }),
     el("span", { class: "reglage-txt" }, el("b", {}, titre), el("small", {}, texte)),
     el("span", { class: "chevron", html: ico("chevron") }));
+  const avecApps = (() => { try { return localStorage.getItem("apps.v1") !== null; } catch (e) { return false; } })(); // ouverte depuis Apps : une seule sauvegarde, celle d'Apps
   return el("section", { class: "carte" },
     el("div", { class: "carte-tete" }, el("h2", {}, "Réglages")),
     el("div", { class: "reglages" },
@@ -1031,11 +1032,11 @@ function carteReglages() {
         el("span", { class: "reglage-txt" }, el("b", {}, "Ton prénom"), el("small", {}, "Pour le bonjour de l'accueil")),
         champ),
       sons,
-      lien("nuage", "Google Drive", "Une copie chaque jour dans ton Drive", () => window.Drive?.ouvrir()),
-      lien("nuage", "Sauvegarde GitHub", "Envoi automatique vers ton dépôt privé", () => window.Sauvegarde?.ouvrir()),
+      lien("nuage", "Google Drive", avecApps ? "Une seule sauvegarde pour toutes tes applis, dans Apps" : "Une copie chaque jour dans ton Drive", () => window.Drive?.ouvrir()),
+      avecApps ? null : lien("nuage", "Sauvegarde GitHub", "Envoi automatique vers ton dépôt privé", () => window.Sauvegarde?.ouvrir()),
       lien("exporter", "Exporter", "Un fichier .json de toutes tes données", () => window.Sauvegarde?.exporterFichier()),
       lien("importer", "Importer", "Recharger un fichier exporté", () => $("fichier").click())),
-    el("p", { class: "aide gauche" }, "Tes données restent sur ce téléphone. Active Google Drive pour en garder une copie chaque jour."));
+    el("p", { class: "aide gauche" }, avecApps ? "Tes données restent sur ce téléphone. La sauvegarde d'Apps en garde une copie dans ton Google Drive, avec tes autres applis." : "Tes données restent sur ce téléphone. Active Google Drive pour en garder une copie chaque jour."));
 }
 
 async function importer(fichier) {

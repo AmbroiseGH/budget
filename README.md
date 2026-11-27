@@ -10,7 +10,7 @@ Aussi dans ce dépôt : la liste de **[Courses](courses/)**, à ouvrir sur https
 
 **Ouvrir Apps : https://ambroisegh.github.io/budget/apps/**
 
-[Apps](apps/) réunit Budget, Courses, Habitudes, Tâches, Journal, Maxilla et Salle. Sur l'accueil, chaque appli s'ouvre en un toucher ; une pastille rouge dit ce qui reste à faire (tâches du jour, habitudes non cochées, journée pas encore notée…) et un bandeau qui défile en haut le résume. La roue en haut à droite ouvre les réglages : **une seule sauvegarde Google Drive** pour toutes les applis (`applications/apps/apps.json`).
+[Apps](apps/) réunit Budget, Courses, Habitudes, Tâches, Journal, Maxilla et Salle. Sur l'accueil, chaque appli s'ouvre en un toucher ; une pastille rouge dit ce qui reste à faire (tâches du jour, habitudes non cochées, journée pas encore notée…) et un bandeau qui défile en haut le résume. La roue en haut à droite ouvre les réglages : **une seule sauvegarde Google Drive** pour toutes les applis (`applications/apps/apps.json`), mise à jour à chaque fois que tu ouvres Apps ou que tu y reviens, quelle que soit l'appli affichée.
 
 Dans chaque appli ouverte depuis Apps, le bouton **‹ Apps** en haut (ou un glissé depuis le bord gauche de l'écran) ramène à l'accueil.
 

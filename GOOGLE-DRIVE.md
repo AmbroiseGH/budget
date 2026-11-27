@@ -11,9 +11,9 @@ applications/
 
 Connexion : Apps → roue en haut à droite → **Sauvegarde Google Drive** → **Se connecter à Google**. Rien à ajouter dans la console Google : Apps utilise le même identifiant que les applis ci-dessous, et Google revient par l'adresse de Budget (`https://ambroisegh.github.io/budget/`, déjà autorisée), qui fait suivre vers Apps.
 
-La copie part quand tu ouvres Apps ou y reviens, si quelque chose a changé (au plus toutes les 5 minutes). Mêmes règles de sécurité qu'avant, appli par appli : jamais de remplacement des données du téléphone sans confirmation, pause au lieu d'écraser une sauvegarde venue d'un autre appareil ou nettement plus fournie, rien n'est envoyé si les données d'une appli sont illisibles, et avant une restauration les données actuelles sont gardées sur le téléphone (`<clé>.avant-restauration`).
+La copie part à chaque fois que tu ouvres Apps ou que tu y reviens, que l'écran affiché soit l'accueil ou une appli, dès que quelque chose a changé depuis la dernière copie. Mêmes règles de sécurité qu'avant, appli par appli : jamais de remplacement des données du téléphone sans confirmation, pause au lieu d'écraser une sauvegarde venue d'un autre appareil ou nettement plus fournie, rien n'est envoyé si les données d'une appli sont illisibles, et avant une restauration les données actuelles sont gardées sur le téléphone (`<clé>.avant-restauration`).
 
-**Restaurer…** liste aussi les anciennes sauvegardes de chaque appli (ci-dessous) : **Récupérer** en remet une dans Apps. Elles restent sur Google Drive telles quelles. Dans une appli ouverte depuis Apps, son ancien bouton de sauvegarde renvoie vers celle d'Apps.
+**Restaurer…** liste aussi les anciennes sauvegardes de chaque appli (ci-dessous) : **Récupérer** en remet une dans Apps. Elles restent sur Google Drive telles quelles. Dans une appli ouverte depuis Apps, ses boutons de sauvegarde (Google Drive, et GitHub dans Maxilla) renvoient vers celle d'Apps : c'est la seule sauvegarde. Les dossiers de chaque appli sur Google Drive ne sont plus mis à jour que par les anciennes icônes, tant que tu les ouvres.
 
 ## Dans chaque appli (avant Apps)
 

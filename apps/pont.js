@@ -3,8 +3,9 @@
    <script src="../apps/pont.js" data-app="journal" data-nom="Journal" data-cle="journal.v1"></script>
 
    - Dans Apps (le stockage contient « apps.v1 ») : un bouton « ‹ Apps » en haut de la page
-     et un glissé depuis le bord gauche pour revenir à l'accueil ; la sauvegarde Google Drive
-     de l'appli renvoie vers celle d'Apps (une seule sauvegarde pour toutes les applis).
+     et un glissé depuis le bord gauche pour revenir à l'accueil. Une seule sauvegarde, celle
+     d'Apps : elle part aussi d'ici (à chaque ouverture ou retour dans Apps, quelle que soit
+     l'appli affichée), et les boutons de sauvegarde de l'appli mènent à celle d'Apps.
    - Dans une ancienne appli de l'écran d'accueil (sans « apps.v1 ») : un bandeau propose de
      copier ses données pour les coller dans Apps. Rien n'est jamais effacé ici.
    Ne touche à aucune donnée de l'appli : il ne fait que les lire (pour le transfert).
@@ -46,8 +47,12 @@
     noterVisite();
     document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") noterVisite(); });
 
-    // Une seule sauvegarde : celle d'Apps (la roue de l'accueil).
-    if (window.Drive) window.Drive.ouvrir = () => location.assign(ACCUEIL + "#sauvegarde");
+    // Une seule sauvegarde : celle d'Apps (la roue de l'accueil). Les boutons de sauvegarde
+    // de l'appli (Google Drive, et GitHub dans Maxilla) y mènent.
+    const versSauvegarde = () => location.assign(ACCUEIL + "#sauvegarde");
+    if (window.Drive) window.Drive.ouvrir = versSauvegarde;
+    if (window.Sauvegarde) window.Sauvegarde.ouvrir = versSauvegarde;
+    sauvegardeCommune();
 
     style(STYLE_LOGO + `
 .apps-barre{position:relative;z-index:5;padding:8px 12px 2px}
@@ -72,6 +77,22 @@ body.sur-jour .apps-retour{color:#fff;background:rgba(255,255,255,.16);text-shad
     document.body.prepend(barre);
 
     gesteRetour();
+  }
+
+  // La sauvegarde d'Apps part aussi d'une appli : à son ouverture, au retour au premier plan
+  // et au retour du réseau. Rien ne part si rien n'a changé depuis le dernier envoi.
+  function sauvegardeCommune() {
+    const verifier = () => { if (window.AppsDrive) window.AppsDrive.auBesoin(); };
+    const charger = (fichier, ensuite) => {
+      const s = document.createElement("script");
+      s.src = ACCUEIL + fichier;
+      s.onload = ensuite;
+      document.head.append(s);
+    };
+    charger("applis.js", () => charger("sauvegarde.js", () => setTimeout(verifier, 2000)));
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") setTimeout(verifier, 1500); });
+    window.addEventListener("pageshow", (e) => { if (e.persisted) setTimeout(verifier, 1500); });
+    window.addEventListener("online", () => setTimeout(verifier, 1500));
   }
 
   function noterVisite() {
