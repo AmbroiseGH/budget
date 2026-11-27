@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Salle</title>
+  <meta name="description" content="Tes séances de musculation : séances types, charges de la dernière fois en transparence, records et courbes de progression.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Salle">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#f2f2f4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="fonts/jakarta-800.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/jakarta-600.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Icônes (traits de 24 × 24) -->
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-haltere" viewBox="0 0 24 24"><rect x="4.6" y="6.5" width="3.4" height="11" rx="1.3"/><rect x="16" y="6.5" width="3.4" height="11" rx="1.3"/><path d="M2.3 10v4"/><path d="M21.7 10v4"/><path d="M8 12h8"/></symbol>
+    <symbol id="i-liste" viewBox="0 0 24 24"><path d="M9 6.5h11"/><path d="M9 12h11"/><path d="M9 17.5h11"/><circle cx="4.5" cy="6.5" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="17.5" r="1.2"/></symbol>
+    <symbol id="i-courbe" viewBox="0 0 24 24"><path d="M3 17.5 9 11.5l4 4 8-8.5"/><path d="M15.5 7H21v5.5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+    <symbol id="i-moins" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-coche" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-haut" viewBox="0 0 24 24"><path d="M12 5.5 19 16H5z" fill="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-bas" viewBox="0 0 24 24"><path d="M12 18.5 5 8h14z" fill="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-chrono" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.8"/><path d="M9.5 2.8h5"/><path d="m18.6 6.6 1.3-1.3"/></symbol>
+    <symbol id="i-couronne" viewBox="0 0 24 24"><path d="M3.5 8 7.6 12 12 5l4.4 7 4.1-4-1.8 10.5H5.3z" fill="currentColor" stroke-width="1.4"/></symbol>
+    <symbol id="i-trophee" viewBox="0 0 24 24"><path d="M7.5 4h9v5.5a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 6H4.2v1.5A3.5 3.5 0 0 0 7.7 11"/><path d="M16.5 6h3.3v1.5a3.5 3.5 0 0 1-3.5 3.5"/><path d="M12 14v4"/><path d="M8.5 20.5h7"/></symbol>
+    <symbol id="i-flamme" viewBox="0 0 24 24"><path d="M12 21.5c-3.9 0-6.8-2.7-6.8-6.4 0-2.6 1.4-4.4 2.8-6 .3 1.5 1.1 2.5 2.2 3 .1-3.6 1.6-6.4 4.3-8.6.4 2.8 1.6 4.5 2.9 6.2 1.1 1.5 1.9 3 1.9 5.2 0 3.8-3.2 6.6-7.3 6.6z"/></symbol>
+    <symbol id="i-crayon" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+    <symbol id="i-poubelle" viewBox="0 0 24 24"><path d="M4.5 6.5h15"/><path d="M9.5 6.5V4.8c0-.7.6-1.3 1.3-1.3h2.4c.7 0 1.3.6 1.3 1.3v1.7"/><path d="M6.5 6.5 7.4 19a1.6 1.6 0 0 0 1.6 1.5h6a1.6 1.6 0 0 0 1.6-1.5l.9-12.5"/></symbol>
+    <symbol id="i-croix" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11"/><path d="M17.5 6.5l-11 11"/></symbol>
+    <symbol id="i-replier" viewBox="0 0 24 24"><path d="M6 9.5 12 15.5l6-6"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 5.5 15.5 12 9 18.5"/></symbol>
+    <symbol id="i-retour" viewBox="0 0 24 24"><path d="M15 5.5 8.5 12l6.5 6.5"/></symbol>
+    <symbol id="i-monter" viewBox="0 0 24 24"><path d="M6.5 14.5 12 9l5.5 5.5"/></symbol>
+    <symbol id="i-reglages" viewBox="0 0 24 24"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2.2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2.2"/></symbol>
+    <symbol id="i-recherche" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/></symbol>
+    <symbol id="i-nuage" viewBox="0 0 24 24"><path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96 6 6 0 0 1 11.5-1.04A4.5 4.5 0 0 1 17.5 18.5z"/></symbol>
+    <symbol id="i-exporter" viewBox="0 0 24 24"><path d="M12 15V3.5"/><path d="M7.5 8 12 3.5 16.5 8"/><path d="M4.5 13.5v5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5"/></symbol>
+    <symbol id="i-importer" viewBox="0 0 24 24"><path d="M12 3.5V15"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 13.5v5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5"/></symbol>
+    <symbol id="i-son" viewBox="0 0 24 24"><path d="M3.5 9.5h4l4.5-4v13l-4.5-4h-4z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18 6.5a7.8 7.8 0 0 1 0 11"/></symbol>
+    <symbol id="i-ecran" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></symbol>
+    <symbol id="i-cible" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8" fill="currentColor"/></symbol>
+    <symbol id="i-points" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/></symbol>
+    <symbol id="i-lecture" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-effacer" viewBox="0 0 24 24"><path d="M9 5.5h10.5a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5H9L3 12z"/><path d="m11.5 9.5 5 5"/><path d="m16.5 9.5-5 5"/></symbol>
+    <symbol id="i-calendrier" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17"/><path d="M8 3v4"/><path d="M16 3v4"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6v.2"/></symbol>
+    <symbol id="i-boucle" viewBox="0 0 24 24"><path d="M20 11.5A8 8 0 1 0 17.7 17"/><path d="M20.5 5.5v6h-6"/></symbol>
+  </svg>
+
+  <!-- ============ Séance (accueil) ============ -->
+  <main id="vue-accueil" class="vue active" aria-label="Séance">
+    <header class="tete">
+      <div>
+        <p id="date-du-jour" class="sur-titre"></p>
+        <h1 class="marque"><svg class="ico logo" aria-hidden="true"><use href="#i-haltere"/></svg>Salle</h1>
+      </div>
+      <button id="bouton-reglages" class="rond" aria-label="Réglages et sauvegarde"><svg class="ico" aria-hidden="true"><use href="#i-reglages"/></svg></button>
+    </header>
+    <section id="heros" class="heros" aria-label="Nouvelle séance"></section>
+    <section id="bloc-semaine" aria-label="Cette semaine"></section>
+    <section id="bloc-derniere"></section>
+    <section id="bloc-records"></section>
+  </main>
+
+  <!-- ============ Exercices ============ -->
+  <main id="vue-exercices" class="vue" aria-label="Exercices" hidden>
+    <header class="tete">
+      <div>
+        <p class="sur-titre">Ta bibliothèque</p>
+        <h1>Exercices</h1>
+      </div>
+      <button id="bouton-nouvel-ex" class="rond plein" aria-label="Nouvel exercice"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
+    </header>
+    <label class="recherche">
+      <svg class="ico" aria-hidden="true"><use href="#i-recherche"/></svg>
+      <input id="recherche-ex" type="search" placeholder="Rechercher un exercice" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+    </label>
+    <div id="liste-ex"></div>
+  </main>
+
+  <!-- ============ Progrès ============ -->
+  <main id="vue-progres" class="vue" aria-label="Progrès" hidden></main>
+
+  <!-- Barre d'onglets -->
+  <nav class="onglets" aria-label="Onglets">
+    <button data-vue="accueil" class="actif" aria-current="page"><svg class="ico" aria-hidden="true"><use href="#i-haltere"/></svg><span>Séance</span></button>
+    <button data-vue="exercices"><svg class="ico" aria-hidden="true"><use href="#i-liste"/></svg><span>Exercices</span></button>
+    <button data-vue="progres"><svg class="ico" aria-hidden="true"><use href="#i-courbe"/></svg><span>Progrès</span></button>
+  </nav>
+
+  <!-- ============ Séance en cours ============ -->
+  <section id="vue-seance" class="seance" aria-label="Séance en cours" hidden>
+    <div class="seance-haut">
+      <header class="seance-tete">
+        <button id="seance-reduire" class="rond" aria-label="Revenir à l'accueil (la séance continue)"><svg class="ico" aria-hidden="true"><use href="#i-replier"/></svg></button>
+        <div class="seance-titres">
+          <h1 id="seance-nom"></h1>
+          <p id="seance-info"></p>
+        </div>
+        <button id="seance-terminer" class="bouton-terminer">Terminer</button>
+      </header>
+      <div id="repos" class="repos" hidden>
+        <div class="repos-ligne">
+          <span class="repos-etiquette"><svg class="ico" aria-hidden="true"><use href="#i-chrono"/></svg><span id="repos-titre">Repos</span></span>
+          <b id="repos-temps" class="repos-temps">1:30</b>
+          <span class="repos-boutons">
+            <button id="repos-moins" aria-label="15 secondes de moins">−15</button>
+            <button id="repos-plus" aria-label="15 secondes de plus">+15</button>
+            <button id="repos-passer" class="passer">Passer</button>
+          </span>
+        </div>
+        <div class="repos-piste"><i id="repos-barre"></i></div>
+      </div>
+    </div>
+    <div id="seance-liste" class="seance-liste"></div>
+  </section>
+
+  <!-- Pavé numérique de la séance -->
+  <div id="pave" class="pave" hidden>
+    <div class="pave-tete">
+      <div class="pave-titres"><b id="pave-titre"></b><small id="pave-aide"></small></div>
+      <button data-k="fermer" class="rond" aria-label="Fermer le pavé"><svg class="ico" aria-hidden="true"><use href="#i-replier"/></svg></button>
+    </div>
+    <div class="pave-grille">
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button data-k="moins" id="pave-moins" class="pas">−2,5</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button data-k="plus" id="pave-plus" class="pas">+2,5</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button data-k="suivant" id="pave-suivant" class="action">Suivant</button>
+      <button data-k="virgule" id="pave-virgule">,</button><button data-k="0">0</button>
+      <button data-k="effacer" aria-label="Effacer"><svg class="ico" aria-hidden="true"><use href="#i-effacer"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Feuille du bas -->
+  <div id="feuille" class="feuille" hidden>
+    <div class="voile" data-fermer></div>
+    <div id="feuille-panneau" class="panneau" role="dialog" aria-modal="true"></div>
+  </div>
+
+  <!-- Bilan de fin de séance -->
+  <div id="fete" class="fete" hidden role="dialog" aria-modal="true" aria-label="Séance terminée">
+    <div class="fete-fond"></div>
+    <div id="fete-contenu" class="fete-contenu"></div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <input id="fichier" type="file" accept="application/json,.json" hidden>
+
+  <script src="sons.js"></script>
+  <script src="drive.js" data-app="salle" data-nom="Salle" data-cle="salle.v1" data-dossier="salle" data-requis="seances" data-unite="séance"></script>
+  <script src="app.js"></script>
+</body>
+</html>

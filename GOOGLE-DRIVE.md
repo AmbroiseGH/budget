@@ -1,13 +1,14 @@
 # Sauvegarde Google Drive
 
-Budget, Habitudes, Journal et Maxilla rangent chaque jour une copie de leurs données dans ton Google Drive :
+Budget, Habitudes, Journal, Maxilla et Salle rangent chaque jour une copie de leurs données dans ton Google Drive :
 
 ```
 applications/
 ├── budget/          budget.json
 ├── habit tracker/   habitudes.json
 ├── journal/         journal.json
-└── maxilla/         maxilla.json
+├── maxilla/         maxilla.json
+└── salle/           salle.json
 ```
 
 Chaque copie remplace celle de la veille (Google Drive garde quand même les anciennes versions quelque temps : clic droit sur le fichier → **Gérer les versions**).
@@ -43,17 +44,20 @@ Il faut d'abord créer un « identifiant » Google, une seule fois (environ 5 mi
 1. Va dans **Clients** (menu de gauche) → **Créer un client**.
 2. **Type d'application** : **Application Web**. **Nom** : `Apps iPhone`.
 3. **Origines JavaScript autorisées** → **Ajouter un URI** : `https://ambroisegh.github.io`
-4. **URI de redirection autorisés** → ajoute ces 4 adresses (une par ligne, avec le `/` final) :
+4. **URI de redirection autorisés** → ajoute ces 5 adresses (une par ligne, avec le `/` final) :
    ```
    https://ambroisegh.github.io/budget/
    https://ambroisegh.github.io/budget/habitudes/
    https://ambroisegh.github.io/budget/journal/
    https://ambroisegh.github.io/budget/maxilla/
+   https://ambroisegh.github.io/budget/salle/
    ```
 5. **Créer**. Google affiche l'**ID client** (finit par `.apps.googleusercontent.com`) et le **Code secret du client** (commence par `GOCSPX-`).
    **Copie les deux dans une note privée** (ou touche **Télécharger le JSON**) : Google ne remontre plus le code secret ensuite.
 
-L'identifiant de Frank (projet « Mes applications ») est déjà intégré dans `drive.js` : les étapes 1 à 4 ne servent que pour en créer un nouveau. Pour changer le code secret : console Google Cloud → **Clients** → **Apps iPhone** → nouveau code secret, puis mettre à jour `SECRET` dans `drive.js`.
+L'identifiant de Frank (projet « Mes applications ») est déjà intégré dans `drive.js` : les étapes 1 à 4 ne servent que pour en créer un nouveau.
+
+**Nouvelle app (ex. Salle)** : l'identifiant existe déjà, il suffit d'ajouter son adresse. Va sur https://console.cloud.google.com/auth/clients → **Apps iPhone** → **URI de redirection autorisés** → **Ajouter un URI** → `https://ambroisegh.github.io/budget/salle/` → **Enregistrer**. Google peut mettre quelques minutes à en tenir compte. Pour changer le code secret : console Google Cloud → **Clients** → **Apps iPhone** → nouveau code secret, puis mettre à jour `SECRET` dans `drive.js`.
 
 ## 5. Connecter chaque app
 
@@ -65,10 +69,11 @@ Ouvre chaque app **depuis son icône sur l'écran d'accueil** (c'est là que son
 | Habitudes | **Ajouter ou retirer des habitudes** → **☁️ Sauvegarde Google Drive** |
 | Journal | Onglet Journal → ⚙️ → **Sauvegarde Google Drive** |
 | Maxilla | Onglet Progrès → Réglages → **Google Drive** |
+| Salle | Onglet Séance → bouton réglages en haut à droite → **Google Drive** |
 
 Touche **Se connecter à Google** (l'identifiant du projet « Mes applications » est déjà intégré aux apps, rien à coller), choisis ton compte et touche **Continuer** / **Autoriser**. Tu reviens dans l'app et la première sauvegarde part tout de suite.
 
-Sur iPhone, chaque app de l'écran d'accueil a son propre stockage : il faut faire cette connexion une fois dans chacune des 4 apps.
+Sur iPhone, chaque app de l'écran d'accueil a son propre stockage : il faut faire cette connexion une fois dans chacune des 5 apps.
 
 ## Récupérer ses données
 
@@ -84,4 +89,4 @@ Si la sauvegarde de Google Drive vient d'ailleurs (autre téléphone, Safari au 
 
 ## Pour le code
 
-`drive.js` (racine) est copié tel quel dans `habitudes/`, `journal/` et `maxilla/`. Après une modification : `cp drive.js habitudes/ journal/ maxilla/` et change `VERSION` dans chaque `sw.js`. Les données locales gardent leur clé habituelle (`budget.v1`, `habitudes.v1`…) ; la connexion est dans `drive.config`, l'état de chaque app dans `drive.etat.<app>`.
+`drive.js` (racine) est copié tel quel dans `habitudes/`, `journal/`, `maxilla/` et `salle/`. Après une modification : `cp drive.js habitudes/ journal/ maxilla/ salle/` et change `VERSION` dans chaque `sw.js`. Les données locales gardent leur clé habituelle (`budget.v1`, `habitudes.v1`…) ; la connexion est dans `drive.config`, l'état de chaque app dans `drive.etat.<app>`.
