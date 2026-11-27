@@ -1,5 +1,22 @@
 # Sauvegarde Google Drive
 
+## Dans Apps : une seule sauvegarde pour toutes les applis
+
+[Apps](https://ambroisegh.github.io/budget/apps/) envoie les données des 7 applis (Budget, Courses, Habitudes, Tâches, Journal, Maxilla, Salle) dans un seul fichier :
+
+```
+applications/
+└── apps/            apps.json
+```
+
+Connexion : Apps → roue en haut à droite → **Sauvegarde Google Drive** → **Se connecter à Google**. Rien à ajouter dans la console Google : Apps utilise le même identifiant que les applis ci-dessous, et Google revient par l'adresse de Budget (`https://ambroisegh.github.io/budget/`, déjà autorisée), qui fait suivre vers Apps.
+
+La copie part quand tu ouvres Apps ou y reviens, si quelque chose a changé (au plus toutes les 5 minutes). Mêmes règles de sécurité qu'avant, appli par appli : jamais de remplacement des données du téléphone sans confirmation, pause au lieu d'écraser une sauvegarde venue d'un autre appareil ou nettement plus fournie, rien n'est envoyé si les données d'une appli sont illisibles, et avant une restauration les données actuelles sont gardées sur le téléphone (`<clé>.avant-restauration`).
+
+**Restaurer…** liste aussi les anciennes sauvegardes de chaque appli (ci-dessous) : **Récupérer** en remet une dans Apps. Elles restent sur Google Drive telles quelles. Dans une appli ouverte depuis Apps, son ancien bouton de sauvegarde renvoie vers celle d'Apps.
+
+## Dans chaque appli (avant Apps)
+
 Budget, Habitudes, Journal, Maxilla et Salle rangent chaque jour une copie de leurs données dans ton Google Drive :
 
 ```
@@ -88,5 +105,7 @@ Si la sauvegarde de Google Drive vient d'ailleurs (autre téléphone, Safari au 
 - **« La connexion à Google a expiré »** : vérifie l'étape 3.5 (application publiée), puis touche **Se reconnecter** dans l'app.
 
 ## Pour le code
+
+Apps : `apps/sauvegarde.js` (connexion dans `apps.drive`, état dans `apps.drive.etat`, connexion en cours dans `apps.oauth` ; le petit script en tête de `index.html` fait suivre le retour de Google vers `apps/`).
 
 `drive.js` (racine) est copié tel quel dans `habitudes/`, `journal/`, `maxilla/` et `salle/`. Après une modification : `cp drive.js habitudes/ journal/ maxilla/ salle/` et change `VERSION` dans chaque `sw.js`. Les données locales gardent leur clé habituelle (`budget.v1`, `habitudes.v1`…) ; la connexion est dans `drive.config`, l'état de chaque app dans `drive.etat.<app>`.

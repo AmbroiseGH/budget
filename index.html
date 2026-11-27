@@ -3,6 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <script>
+    // Retour de la connexion Google lancée depuis Apps : Google revient à cette adresse
+    // (déjà autorisée), on fait suivre tout de suite vers Apps sans rien charger d'autre.
+    (function () {
+      try {
+        var q = location.search, o = JSON.parse(localStorage.getItem("apps.oauth") || "null");
+        if (!o || q.indexOf("state=") < 0 || new URLSearchParams(q).get("state") !== o.etat) return;
+        history.replaceState(null, "", location.pathname);
+        window.stop();
+        location.replace("apps/" + q);
+      } catch (e) {}
+    })();
+  </script>
   <title>Budget</title>
   <meta name="description" content="Suivi simple des revenus, dépenses, comptes d'épargne et du PEA.">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -64,7 +77,7 @@
           <button id="tout-voir" class="lien" hidden>Tout voir</button>
         </div>
         <ul id="derniers" class="liste"></ul>
-        <div id="vide-accueil" class="vide"><div class="vide-ico">✍️</div>Tape un montant puis touche Revenu ou Dépense.</div>
+        <div id="vide-accueil" class="vide"><div class="vide-ico">✍️</div>Tape un montant puis touche Revenu ou Dépense.<br><button id="recuperer" class="lien" type="button">☁️ Nouvel appareil ? Récupérer mes données</button></div>
       </div>
     </section>
 
@@ -206,5 +219,7 @@
 
   <script src="drive.js" data-app="budget" data-nom="Budget" data-cle="budget.v1" data-dossier="budget" data-requis="mouvements" data-unite="mouvement"></script>
   <script src="app.js"></script>
+  <!-- Apps : bouton de retour dans Apps, ou transfert depuis l'ancienne appli (voir apps/pont.js) -->
+  <script src="apps/pont.js" data-app="budget" data-nom="Budget" data-cle="budget.v1"></script>
 </body>
 </html>

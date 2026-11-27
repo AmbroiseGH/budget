@@ -1,0 +1,295 @@
+@font-face { font-family: "Jakarta"; font-weight: 500; font-display: swap; src: url(../fonts/jakarta-500.woff2) format("woff2"); }
+@font-face { font-family: "Jakarta"; font-weight: 600; font-display: swap; src: url(../fonts/jakarta-600.woff2) format("woff2"); }
+@font-face { font-family: "Jakarta"; font-weight: 700; font-display: swap; src: url(../fonts/jakarta-700.woff2) format("woff2"); }
+@font-face { font-family: "Jakarta"; font-weight: 800; font-display: swap; src: url(../fonts/jakarta-800.woff2) format("woff2"); }
+
+/* Passage en douceur entre Apps et les applis (Safari récent ; ignoré ailleurs) */
+@view-transition { navigation: auto; }
+
+/* « hidden » l'emporte toujours sur les display des classes */
+[hidden] { display: none !important; }
+
+:root {
+  /* Les quatre couleurs du logo */
+  --rose: #f7b9c4;
+  --ciel: #b0c9f5;
+  --beurre: #f9dc94;
+  --menthe: #aee0c8;
+
+  --fond: #ffffff;
+  --feuille: #f4f4f7;
+  --carte: #ffffff;
+  --carte-2: #f1f1f5;
+  --verre: rgba(22, 22, 40, .045);
+  --texte: #15151c;
+  --doux: #76767f;
+  --trait: rgba(22, 22, 40, .08);
+  --encre: #16161d;
+  --sur-encre: #ffffff;
+  --rouge: #ff3b30;
+  --vert: #1a9b5a;
+  --alerte: #b4530b;
+  --alerte-fond: #fff3e6;
+  --info-fond: #edf6f1;
+  --ombre-icone: 0 8px 18px -8px rgba(22, 22, 50, .35), 0 1px 3px rgba(22, 22, 50, .10);
+  --ombre-carte: 0 1px 2px rgba(22, 22, 50, .04), 0 6px 20px -12px rgba(22, 22, 50, .18);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #0c0c10;
+    --feuille: #121217;
+    --carte: #1b1b22;
+    --carte-2: #24242c;
+    --verre: rgba(255, 255, 255, .07);
+    --texte: #f3f3f7;
+    --doux: #9c9ca8;
+    --trait: rgba(255, 255, 255, .08);
+    --encre: #f3f3f7;
+    --sur-encre: #0c0c10;
+    --vert: #4fd18b;
+    --alerte: #ffb16b;
+    --alerte-fond: #2b1d10;
+    --info-fond: #15251d;
+    --ombre-icone: 0 10px 22px -10px rgba(0, 0, 0, .8), 0 0 0 .5px rgba(255, 255, 255, .06);
+    --ombre-carte: none;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--fond); color: var(--texte); }
+body {
+  font: 500 16px/1.4 "Jakarta", -apple-system, system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
+}
+body.bloque { overflow: hidden; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; letter-spacing: inherit; padding: 0; }
+input, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
+a { color: inherit; }
+
+/* Une lueur pastel très légère, en haut */
+.lueur {
+  position: fixed; inset: -10vh -10vw auto; height: 55vh; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(34% 40% at 12% 18%, color-mix(in srgb, var(--rose) 45%, transparent), transparent 70%),
+    radial-gradient(32% 38% at 92% 8%, color-mix(in srgb, var(--ciel) 45%, transparent), transparent 70%),
+    radial-gradient(28% 30% at 55% 42%, color-mix(in srgb, var(--menthe) 22%, transparent), transparent 70%);
+  filter: blur(24px);
+  opacity: .55;
+}
+@media (prefers-color-scheme: dark) { .lueur { opacity: .16; } }
+
+/* =========================================================
+   Accueil
+   ========================================================= */
+
+.accueil {
+  max-width: 560px; margin: 0 auto;
+  min-height: 100vh; min-height: 100dvh;
+  display: flex; flex-direction: column;
+  padding: calc(env(safe-area-inset-top) + 10px) 20px calc(env(safe-area-inset-bottom) + 18px);
+}
+
+.haut { display: flex; align-items: center; gap: 10px; }
+
+/* Le bandeau qui défile */
+.defile {
+  position: relative; flex: 1; min-width: 0; height: 42px;
+  border-radius: 999px; background: var(--verre); overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent);
+  mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent);
+}
+.piste { display: flex; width: max-content; height: 100%; align-items: center; will-change: transform; }
+.piste.anime { animation: defiler var(--duree, 30s) linear infinite; }
+.defile.pause .piste { animation-play-state: paused; }
+@keyframes defiler { to { transform: translateX(-50%); } }
+.groupe { display: flex; align-items: center; gap: 34px; padding: 0 18px 0 16px; }
+.info {
+  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+  font-size: 14px; font-weight: 600; color: var(--texte); text-decoration: none;
+}
+.info img { width: 18px; height: 18px; border-radius: 5px; flex: none; }
+@media (prefers-reduced-motion: reduce) {
+  .defile { overflow-x: auto; scrollbar-width: none; }
+  .defile::-webkit-scrollbar { display: none; }
+}
+
+.rond {
+  flex: none; width: 42px; height: 42px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--verre);
+  transition: transform .15s ease;
+}
+.rond:active { transform: scale(.92); }
+.rond svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+
+/* Le petit logo : quatre carrés pastel */
+.logo-mini { display: inline-grid; grid-template-columns: 1fr 1fr; gap: 1.6px; width: 14px; height: 14px; flex: none; }
+.logo-mini i { border-radius: 2.2px; }
+.logo-mini i:nth-child(1) { background: var(--rose); }
+.logo-mini i:nth-child(2) { background: var(--ciel); }
+.logo-mini i:nth-child(3) { background: var(--beurre); }
+.logo-mini i:nth-child(4) { background: var(--menthe); }
+
+.tete { margin: 34px 4px 34px; }
+.date { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--doux); font-size: 14.5px; font-weight: 600; }
+h1 { margin: 8px 0 0; font-size: 38px; line-height: 1.06; font-weight: 800; letter-spacing: -.035em; }
+
+/* La grille des applis */
+.grille { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 30px 6px; }
+.appli {
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  text-decoration: none; color: var(--texte); -webkit-touch-callout: none; user-select: none; -webkit-user-select: none;
+}
+.icone {
+  position: relative; width: 68px; height: 68px; border-radius: 16px;
+  box-shadow: var(--ombre-icone); transition: transform .18s cubic-bezier(.3, .7, .4, 1.4);
+}
+.icone img { display: block; width: 100%; height: 100%; border-radius: inherit; }
+.appli:active .icone { transform: scale(.9); }
+.nom { font-size: 12.5px; font-weight: 600; letter-spacing: -.005em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pastille {
+  position: absolute; top: -7px; right: -8px;
+  min-width: 23px; height: 23px; padding: 0 6.5px; border-radius: 12px;
+  background: var(--rouge); color: #fff;
+  font-size: 13px; line-height: 23px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; letter-spacing: 0;
+  box-shadow: 0 0 0 2.5px var(--fond);
+  animation: apparaitre .35s cubic-bezier(.3, .7, .4, 1.5) both;
+}
+@keyframes apparaitre { from { transform: scale(.3); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pastille { animation: none; } }
+
+/* Bienvenue (tant qu'Apps n'a aucune donnée) */
+.bienvenue {
+  margin-top: 36px; padding: 20px; border-radius: 24px;
+  background: var(--carte); box-shadow: var(--ombre-carte); border: 1px solid var(--trait);
+}
+.bienvenue h2 { margin: 0 0 6px; font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+.bienvenue p { margin: 0 0 16px; color: var(--doux); font-size: 15px; line-height: 1.45; }
+.bienvenue .boutons { flex-direction: column; }
+.bienvenue .btn { width: 100%; }
+
+/* État de la sauvegarde, en bas */
+.etat-sauvegarde {
+  margin-top: auto; align-self: center;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 28px 12px 4px; color: var(--doux); font-size: 13px; font-weight: 600; text-align: center;
+}
+.etat-sauvegarde .ico { display: grid; }
+.etat-sauvegarde svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.etat-sauvegarde.alerte { color: var(--alerte); }
+
+/* =========================================================
+   Boutons
+   ========================================================= */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 46px; padding: 0 20px; border-radius: 999px;
+  background: var(--carte-2); color: var(--texte); font-size: 15px; font-weight: 700;
+  transition: transform .15s ease, opacity .15s ease;
+}
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .5; }
+.btn.plein { background: var(--encre); color: var(--sur-encre); }
+.btn.petit { min-height: 36px; padding: 0 15px; font-size: 14px; }
+.btn.large { width: 100%; }
+.boutons { display: flex; flex-wrap: wrap; gap: 10px; }
+.lien { color: var(--doux); font-size: 14px; font-weight: 600; }
+.lien.discret { display: block; margin: 16px auto 0; padding: 4px 8px; }
+
+/* =========================================================
+   Feuille des réglages
+   ========================================================= */
+
+.feuille { position: fixed; inset: 0; z-index: 50; background: rgba(8, 8, 18, 0); transition: background .28s ease; }
+.feuille.ouverte { background: rgba(8, 8, 18, .34); }
+.panneau {
+  position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto;
+  max-height: calc(100dvh - env(safe-area-inset-top) - 18px); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--feuille); border-radius: 28px 28px 0 0;
+  padding: 0 16px calc(env(safe-area-inset-bottom) + 30px);
+  transform: translateY(100%); transition: transform .32s cubic-bezier(.2, .8, .2, 1);
+}
+.feuille.ouverte .panneau { transform: none; }
+@media (prefers-reduced-motion: reduce) { .feuille, .panneau { transition: none; } }
+.panneau-haut {
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 4px 10px; background: var(--feuille);
+}
+.panneau-haut h2 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -.025em; }
+.panneau-haut .btn { background: var(--encre); color: var(--sur-encre); }
+.section h3 { margin: 22px 6px 8px; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--doux); scroll-margin-top: 70px; }
+.section { scroll-margin-top: 64px; }
+.carte { background: var(--carte); border-radius: 20px; padding: 16px; box-shadow: var(--ombre-carte); }
+.carte.liste { padding: 2px 16px; }
+.texte { margin: 0 0 14px; font-size: 15px; line-height: 1.45; }
+.aide { margin: 12px 4px 0; color: var(--doux); font-size: 13px; line-height: 1.45; }
+.carte .aide { margin: 12px 0 0; }
+.message { margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--info-fond); font-size: 14px; line-height: 1.4; font-weight: 600; }
+.message.erreur { background: var(--alerte-fond); color: var(--alerte); }
+.lignes { margin: 0 0 14px; }
+.ligne-info { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; border-bottom: 1px solid var(--trait); font-size: 14px; }
+.ligne-info span { color: var(--doux); }
+.ligne-info b { font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.alerte { margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: var(--alerte-fond); }
+.alerte p { margin: 0 0 12px; font-size: 14px; line-height: 1.45; }
+.alerte b { color: var(--alerte); }
+
+.sauvegardes { margin-top: 14px; border-top: 1px solid var(--trait); }
+.sauvegarde { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--trait); }
+.sauvegarde img { width: 36px; height: 36px; border-radius: 9px; flex: none; }
+.sauvegarde .logo-mini { width: 36px; height: 36px; padding: 7px; gap: 3px; border-radius: 9px; background: #fff; box-shadow: 0 0 0 1px var(--trait); }
+.sauvegarde .logo-mini i { border-radius: 3px; }
+.sauvegarde .txt, .donnee .txt { flex: 1; min-width: 0; }
+.sauvegarde b, .donnee b { display: block; font-size: 15px; font-weight: 700; }
+.sauvegarde small, .donnee small { display: block; color: var(--doux); font-size: 13px; line-height: 1.35; }
+
+.donnee { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--trait); }
+.donnee:last-child { border-bottom: 0; }
+.donnee img { width: 34px; height: 34px; border-radius: 8px; flex: none; }
+.donnee.vide img { opacity: .5; filter: grayscale(.6); }
+.etiquette { flex: none; padding: 4px 9px; border-radius: 99px; background: var(--alerte-fond); color: var(--alerte); font-size: 12px; font-weight: 700; }
+.ok { flex: none; display: grid; }
+.ok svg { width: 22px; height: 22px; fill: none; stroke: var(--vert); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+ol.etapes { margin: 0 0 16px; padding: 0; list-style: none; counter-reset: e; }
+ol.etapes li { counter-increment: e; position: relative; padding: 0 0 12px 36px; font-size: 14.5px; line-height: 1.45; }
+ol.etapes li:last-child { padding-bottom: 0; }
+ol.etapes li::before {
+  content: counter(e); position: absolute; left: 0; top: 0;
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--carte-2); font-size: 12.5px; font-weight: 800;
+}
+.zone-coller {
+  display: block; width: 100%; margin-top: 10px; padding: 10px 12px; resize: none;
+  border: 1.5px dashed var(--trait); border-radius: 14px; background: var(--carte-2); font-size: 16px;
+}
+.champ { display: flex; flex-direction: column; gap: 7px; }
+.champ span { color: var(--doux); font-size: 13px; font-weight: 600; }
+.champ input { height: 46px; padding: 0 14px; border: 0; border-radius: 13px; background: var(--carte-2); font-size: 16px; outline: none; }
+
+/* =========================================================
+   Toast
+   ========================================================= */
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 22px); z-index: 80;
+  max-width: calc(100% - 32px); width: max-content;
+  padding: 12px 18px; border-radius: 16px;
+  background: #16161d; color: #fff; font-size: 14px; font-weight: 600; line-height: 1.35; text-align: center;
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, .5);
+  opacity: 0; transform: translate(-50%, 16px); transition: opacity .25s ease, transform .25s ease;
+}
+.toast.visible { opacity: 1; transform: translate(-50%, 0); }
+.toast.erreur { background: #b42318; }
+@media (prefers-color-scheme: dark) { .toast { background: #2a2a33; } }
+
+@media (min-width: 420px) {
+  .icone { width: 74px; height: 74px; border-radius: 17.5px; }
+  .nom { font-size: 13px; }
+}

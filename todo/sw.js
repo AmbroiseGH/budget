@@ -1,6 +1,6 @@
 // Garde l'app disponible hors ligne. Changer VERSION à chaque mise à jour des fichiers.
-const VERSION = "todo-v1";
-const FICHIERS = ["./", "index.html", "style.css", "app.js", "manifest.webmanifest",
+const VERSION = "todo-v2";
+const FICHIERS = ["./", "index.html", "style.css", "app.js", "../apps/pont.js", "manifest.webmanifest",
   "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "fonts/jakarta-500.woff2", "fonts/jakarta-600.woff2", "fonts/jakarta-700.woff2", "fonts/jakarta-800.woff2"];
 
