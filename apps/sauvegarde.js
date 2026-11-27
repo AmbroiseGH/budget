@@ -5,8 +5,9 @@
    garde quand même ses anciennes versions quelque temps). Il contient les données
    de chaque appli, sous leur clé habituelle (budget.v1, journal.v1…).
 
-   Envoi automatique quand Apps s'ouvre ou revient au premier plan, si quelque chose
-   a changé depuis le dernier envoi (au plus toutes les 5 minutes).
+   Envoi automatique à chaque ouverture d'Apps ou retour dans Apps, quelle que soit la page
+   affichée (l'accueil, ou une appli : pont.js charge ce fichier), si quelque chose a changé
+   depuis le dernier envoi.
 
    Connexion : même projet Google que drive.js (les anciennes sauvegardes de chaque
    appli restent donc lisibles). Google renvoie à l'adresse de Budget, déjà autorisée
@@ -23,6 +24,11 @@
    ========================================================= */
 (function () {
   "use strict";
+  if (window.AppsDrive) return;
+  const { APPLIS, APPLI, lireAppli, resumeDe } = window.AppsCatalogue; // applis.js, chargé avant
+  const SCRIPT = document.currentScript;
+  const ICI = new URL(".", SCRIPT ? SCRIPT.src : location.href).href; // le dossier d'Apps
+  const SUR_ACCUEIL = new URL(".", location.href).href === ICI;      // l'accueil d'Apps (sinon : une appli)
   const RACINE = "applications", DOSSIER = "apps", FICHIER = "apps.json";
   const CLE_CONFIG = "apps.drive";          // { refresh, compte }
   const CLE_ETAT = "apps.drive.etat";       // { fichierId, date, empreinte, pause, erreur }
@@ -33,9 +39,8 @@
   const CLIENT_ID = "418112090148-dab0qaeu0osm79io7s785mpuq9a04cip.apps.googleusercontent.com";
   const SECRET = "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";
   // Adresse de retour déjà autorisée chez Google : celle de Budget (la racine du site).
-  const RETOUR = new URL("../", location.href).href;
-  const INTERVALLE = 5 * 60 * 1000;         // au plus un envoi automatique toutes les 5 minutes
-  const PAUSE_ESSAI = 10 * 60 * 1000;       // après un échec, on réessaie au plus toutes les 10 minutes
+  const RETOUR = new URL("../", ICI).href;
+  const PAUSE_ESSAI = 2 * 60 * 1000;        // après un échec, on réessaie au plus toutes les 2 minutes
 
   /* ---------- Stockage local ---------- */
   const lire = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
@@ -111,11 +116,12 @@
   }
 
   let acces = null; // { jeton, fin } : jeton d'accès d'une heure, gardé en mémoire seulement
-  let enCours = null, dernierEchec = 0;
+  let enCours = null;
 
   // Retour de Google : Budget a fait suivre ?code=…&state=… jusqu'ici.
   let retourOAuth = null;
   (function lireRetour() {
+    if (!SUR_ACCUEIL) return; // Google ne revient que sur l'accueil d'Apps
     const q = new URLSearchParams(location.search);
     if (!q.has("state") || !(q.has("code") || q.has("error"))) return;
     const attendu = lire(CLE_OAUTH);
@@ -137,7 +143,7 @@
       if (!r.refresh_token) throw new ErreurD(-5, "Google n'a pas donné d'accès durable. Réessaie de te connecter.");
       acces = { jeton: r.access_token, fin: Date.now() + (r.expires_in || 3600) * 1000 };
       ecrire(CLE_CONFIG, { refresh: r.refresh_token, compte: null });
-      majEtat({ erreur: null, pause: null, empreinte: null });
+      majEtat({ erreur: null, pause: null, empreinte: null, echec: null });
       try {
         const a = await api("https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)");
         const c = config(); c.compte = (a.user && a.user.emailAddress) || null; ecrire(CLE_CONFIG, c);
@@ -258,23 +264,23 @@
         headers: { "Content-Type": `multipart/related; boundary=${limite}` },
         body: corps,
       });
-      majEtat({ fichierId: r.id, date, empreinte: c.empreinte, pause: null, erreur: null });
+      majEtat({ fichierId: r.id, date, empreinte: c.empreinte, pause: null, erreur: null, echec: null });
       return "envoye";
     })();
     const p = enCours;
     p.catch((err) => {
       if (err.code === 409 || err.code === 410) majEtat({ pause: err.code === 409 ? "conflit" : "baisse", raison: err.message });
-      if (auto) dernierEchec = Date.now();
+      else if (auto) majEtat({ echec: Date.now() });
     }).finally(() => { if (enCours === p) enCours = null; });
     return p;
   }
 
-  // À l'ouverture d'Apps, au retour au premier plan, au retour du réseau.
+  // À chaque ouverture d'Apps (accueil ou appli), au retour au premier plan, au retour du réseau.
+  // Rien ne part si rien n'a changé depuis le dernier envoi (empreinte).
   function auBesoin() {
     if (!config() || retourOAuth || !navigator.onLine) return Promise.resolve(null);
     const e = etat();
-    if (e.pause || Date.now() - dernierEchec < PAUSE_ESSAI) return Promise.resolve(null);
-    if (e.date && Date.now() - new Date(e.date) < INTERVALLE) return Promise.resolve(null);
+    if (e.pause || (e.echec && Date.now() - e.echec < PAUSE_ESSAI)) return Promise.resolve(null);
     return envoyer({ auto: true }).catch(() => null);
   }
 
@@ -334,7 +340,7 @@
       if (!r.prenom) { r.prenom = reglages.prenom; ecrire("apps.v1", r); }
     }
     if (echecs.length) throw new ErreurD(-4, `Restauration incomplète : impossible d'écrire ${echecs.join(", ")} (mémoire pleine ?)`);
-    majEtat({ pause: null, raison: null, erreur: null, empreinte: null });
+    majEtat({ pause: null, raison: null, erreur: null, empreinte: null, echec: null });
     // Cet appareil a maintenant les mêmes données que la sauvegarde : il la reprend à son compte.
     try { await envoyer({ forcer: true }); } catch (e) {}
     return true;
@@ -360,7 +366,7 @@
   function deconnecter() {
     effacer(CLE_CONFIG);
     acces = null;
-    majEtat({ pause: null, raison: null, erreur: null, empreinte: null });
+    majEtat({ pause: null, raison: null, erreur: null, empreinte: null, echec: null });
   }
 
   function quand(iso) {

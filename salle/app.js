@@ -2002,7 +2002,7 @@ function rendreReglages() {
       inter("ecran", "Écran allumé", "Pendant la séance, l'écran ne se met pas en veille", "ecran")),
     el("p", { class: "titre-section" }, "Sauvegarde"),
     el("div", { class: "bloc" },
-      lien("nuage", "Google Drive", "Une copie chaque jour dans ton Drive", () => { sauverSiBesoin(); Feuille.fermer(); window.Drive?.ouvrir(); }),
+      lien("nuage", "Google Drive", localStorage.getItem("apps.v1") !== null ? "Une seule sauvegarde pour toutes tes applis, dans Apps" : "Une copie chaque jour dans ton Drive", () => { sauverSiBesoin(); Feuille.fermer(); window.Drive?.ouvrir(); }),
       lien("exporter", "Exporter", "Un fichier .json de toutes tes données", exporter),
       lien("importer", "Importer", "Recharger un fichier exporté", () => $("fichier").click())),
     el("p", { class: "titre-section" }, "Les couleurs de la séance"),

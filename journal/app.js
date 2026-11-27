@@ -1005,14 +1005,15 @@ function ouvrirReglages() {
       if (donnees.sons) { preparerAudio(); setTimeout(() => sonEtoile(6), 200); }
     },
   }, el("span", { class: "ico" }, "✨"), el("span", { class: "t" }, "Sons", el("small", {}, "Notes de verre et scintillement d'étoile")), el("span", { class: "interrupteur" }));
+  const avecApps = (() => { try { return localStorage.getItem("apps.v1") !== null; } catch (e) { return false; } })(); // ouverte depuis Apps : une seule sauvegarde, celle d'Apps
   ouvrirFeuille(
     el("h3", {}, "Réglages"),
     el("p", { class: "sous" }, nb ? `${pluriel(nb, "journée")} dans ton journal` : "Ton journal est encore vide"),
     sons,
-    el("button", { class: "reglage", onclick: () => window.Drive?.ouvrir() }, el("span", { class: "ico" }, "☁️"), el("span", { class: "t" }, "Sauvegarde Google Drive", el("small", {}, "Une copie chaque jour dans ton Drive"))),
+    el("button", { class: "reglage", onclick: () => window.Drive?.ouvrir() }, el("span", { class: "ico" }, "☁️"), el("span", { class: "t" }, "Sauvegarde Google Drive", el("small", {}, avecApps ? "Une seule sauvegarde pour toutes tes applis, dans Apps" : "Une copie chaque jour dans ton Drive"))),
     el("button", { class: "reglage", onclick: exporter }, el("span", { class: "ico" }, "📤"), el("span", { class: "t" }, "Exporter mon journal", el("small", {}, "Une copie de sauvegarde à garder"))),
     el("button", { class: "reglage", onclick: () => $("fichier").click() }, el("span", { class: "ico" }, "📥"), el("span", { class: "t" }, "Importer une sauvegarde", el("small", {}, "Remplace le journal de ce téléphone"))),
-    el("p", { class: "petit-texte" }, "Ton journal reste sur ce téléphone. Si tu actives Google Drive, une copie y est rangée chaque jour, rien d'autre. Scintillement : « Distant Star Sparkle », Soundza (soundza.com)."),
+    el("p", { class: "petit-texte" }, (avecApps ? "Ton journal reste sur ce téléphone. La sauvegarde d'Apps en garde une copie dans ton Google Drive, avec tes autres applis, rien d'autre." : "Ton journal reste sur ce téléphone. Si tu actives Google Drive, une copie y est rangée chaque jour, rien d'autre.") + " Scintillement : « Distant Star Sparkle », Soundza (soundza.com)."),
   );
 }
 $("ouvrir-reglages").addEventListener("click", ouvrirReglages);

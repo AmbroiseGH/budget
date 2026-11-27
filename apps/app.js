@@ -9,6 +9,7 @@
    La présence de « apps.v1 » dit aux applis qu'elles tournent dans Apps (voir pont.js).
    ========================================================= */
 
+const { APPLIS, APPLI, APPLI_PAR_CLE, pl, lireAppli, resumeDe } = window.AppsCatalogue; // applis.js
 const CLE = "apps.v1";
 const $ = (id) => document.getElementById(id);
 const BASE = new URL("../", location.href).href;
@@ -358,7 +359,7 @@ function rendreDrive() {
   const enfants = [];
   if (!D.connecte()) {
     enfants.push(
-      el("p", { class: "texte" }, "Une seule copie de toutes tes applis dans ton Google Drive (dossier ", el("b", {}, "applications › apps"), "). Elle se met à jour toute seule quand tu ouvres Apps."),
+      el("p", { class: "texte" }, "Une seule copie de toutes tes applis dans ton Google Drive (dossier ", el("b", {}, "applications › apps"), "). Elle se met à jour toute seule à chaque fois que tu ouvres Apps ou que tu y reviens."),
       bouton("Se connecter à Google", async () => {
         try { await D.connecter(); } catch (e) { infoDrive = { texte: e.message, erreur: true }; rendreDrive(); }
       }, "plein"),
